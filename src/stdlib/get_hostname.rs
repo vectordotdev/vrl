@@ -16,7 +16,7 @@ impl Function for GetHostname {
         "get_hostname"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns the local system's hostname."
     }
 

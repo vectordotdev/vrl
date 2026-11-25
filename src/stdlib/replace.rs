@@ -28,26 +28,16 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
     let with = with_value.try_bytes_utf8_lossy()?;
     let count = count.try_integer()?;
     match pattern {
-        Value::Bytes(bytes) => {
-            let pattern = String::from_utf8_lossy(&bytes);
-            let replaced = match count {
-                i if i > 0 => value.replacen(pattern.as_ref(), &with, i as usize),
-                i if i < 0 => value.replace(pattern.as_ref(), &with),
-                _ => value.into_owned(),
-            };
-
-            Ok(replaced.into())
+        pattern @ (Value::Bytes(_) | Value::String(_)) => {
+            let pattern = pattern
+                .to_str_lossy()
+                .expect("bytes and string have a text view");
+            Ok(replace_str(&value, &pattern, &with, count).into())
         }
         Value::Regex(regex) => {
             let replaced = match count {
-                i if i > 0 => Bytes::copy_from_slice(
-                    regex.replacen(&value, i as usize, with.as_ref()).as_bytes(),
-                )
-                .into(),
-                i if i < 0 => {
-                    Bytes::copy_from_slice(regex.replace_all(&value, with.as_ref()).as_bytes())
-                        .into()
-                }
+                i if i > 0 => regex.replacen(&value, i as usize, with.as_ref()).into(),
+                i if i < 0 => regex.replace_all(&value, with.as_ref()).into(),
                 _ => value.into(),
             };
 
@@ -61,6 +51,15 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
     }
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+fn replace_str(value: &str, pattern: &str, with: &str, count: i64) -> String {
+    match count {
+        i if i > 0 => value.replacen(pattern, with, i as usize),
+        i if i < 0 => value.replace(pattern, with),
+        _ => value.to_owned(),
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Replace;
 
@@ -69,7 +68,7 @@ impl Function for Replace {
         "replace"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Replaces all matching instances of `pattern` in `value`.
 

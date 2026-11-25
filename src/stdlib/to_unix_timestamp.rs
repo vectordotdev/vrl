@@ -2,7 +2,7 @@ use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use std::str::FromStr;
 
-static DEFAULT_UNIT: Value = Value::Bytes(Bytes::from_static("seconds".as_bytes()));
+static DEFAULT_UNIT: Value = Value::from_static_str("seconds");
 
 static UNIT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -52,7 +52,7 @@ impl Function for ToUnixTimestamp {
         "to_unix_timestamp"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Converts the `value` timestamp into a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time).
 
@@ -93,7 +93,7 @@ impl Function for ToUnixTimestamp {
             },
             example! {
                 title: "Convert to a Unix timestamp (nanoseconds)",
-                source: r#"to_unix_timestamp(t'2021-01-01T00:00:00Z', unit: "nanoseconds")"#,
+                source: r#"to_unix_timestamp!(t'2021-01-01T00:00:00Z', unit: "nanoseconds")"#,
                 result: Ok("1609459200000000000"),
             },
         ]
@@ -186,7 +186,9 @@ impl FunctionExpression for ToUnixTimestampFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::integer().infallible()
+        // Only nanoseconds can overflow a 64-bit integer (`timestamp_nanos_opt`
+        // returns `None` for out-of-range timestamps), so only that unit is fallible.
+        TypeDef::integer().maybe_fallible(self.unit == Unit::Nanoseconds)
     }
 }
 
@@ -228,14 +230,14 @@ mod test {
                               unit: "nanoseconds"
              ],
              want: Ok(1_609_459_200_000_000_000_i64),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::integer().fallible(),
          }
          out_of_range {
              args: func_args![value: Utc.with_ymd_and_hms(0, 1, 1, 0, 0, 0).unwrap(),
                               unit: "nanoseconds"
              ],
              want: Err("can't convert out of range timestamp"),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::integer().fallible(),
          }
     ];
 }

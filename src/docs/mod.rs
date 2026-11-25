@@ -1,4 +1,3 @@
-#![deny(warnings, clippy::pedantic)]
 pub mod cmd;
 
 pub use cmd::{Opts, docs};
@@ -37,6 +36,8 @@ pub struct ArgumentDoc {
     pub description: String,
     pub required: bool,
     pub r#type: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub element_type: Vec<String>,
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub r#enum: IndexMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -130,12 +131,18 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
                 description,
                 default,
                 enum_variants,
+                element_kind,
             } = param;
 
             let name = keyword.trim().to_string();
             let description = description.trim().to_string();
             let default = default.map(pretty_value);
             let r#type = kind_to_types(*kind);
+            let element_type = if *element_kind == kind::ANY {
+                Vec::new()
+            } else {
+                kind_to_types(*element_kind)
+            };
             let r#enum = enum_variants
                 .unwrap_or_default()
                 .iter()
@@ -149,6 +156,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
                 description,
                 required: *required,
                 r#type,
+                element_type,
                 default,
                 r#enum,
             }
@@ -198,7 +206,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
         anchor: name.clone(),
         name,
         category: func.category().to_string(),
-        description: trim_str(func.usage()),
+        description: trim_str(func.description()),
         arguments,
         r#return: ReturnDoc {
             types: kind_to_types(func.return_kind()),
@@ -253,11 +261,7 @@ fn kind_to_types(kind_bits: u16) -> Vec<String> {
 }
 
 fn pretty_value(v: &Value) -> String {
-    if let Value::Bytes(b) = v {
-        str::from_utf8(b).map_or_else(|_| v.to_string(), String::from)
-    } else {
-        v.to_string()
-    }
+    v.to_str().map_or_else(|| v.to_string(), str::to_owned)
 }
 
 fn trim_str(s: &'static str) -> String {

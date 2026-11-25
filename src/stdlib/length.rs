@@ -4,7 +4,9 @@ fn length(value: Value) -> Resolved {
     match value {
         Value::Array(v) => Ok(v.len().into()),
         Value::Object(v) => Ok(v.len().into()),
-        Value::Bytes(v) => Ok(v.len().into()),
+        v @ (Value::Bytes(_) | Value::String(_)) => {
+            Ok(v.as_bytes().expect("bytes-like").len().into())
+        }
         value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::array(Collection::any())
@@ -23,7 +25,7 @@ impl Function for Length {
         "length"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Returns the length of the `value`.
 

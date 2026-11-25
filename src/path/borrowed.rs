@@ -16,6 +16,7 @@ pub struct BorrowedTargetPath<'a, 'b> {
 }
 
 impl<'a, 'b> BorrowedTargetPath<'a, 'b> {
+    #[must_use]
     pub fn event(path: BorrowedValuePath<'a, 'b>) -> Self {
         Self {
             prefix: PathPrefix::Event,
@@ -23,6 +24,7 @@ impl<'a, 'b> BorrowedTargetPath<'a, 'b> {
         }
     }
 
+    #[must_use]
     pub fn metadata(path: BorrowedValuePath<'a, 'b>) -> Self {
         Self {
             prefix: PathPrefix::Metadata,
@@ -39,18 +41,23 @@ pub enum BorrowedSegment<'a> {
 }
 
 impl BorrowedSegment<'_> {
+    #[must_use]
     pub const fn field(value: &str) -> BorrowedSegment<'_> {
         BorrowedSegment::Field(Cow::Borrowed(value))
     }
+    #[must_use]
     pub fn index(value: isize) -> BorrowedSegment<'static> {
         BorrowedSegment::Index(value)
     }
+    #[must_use]
     pub fn is_field(&self) -> bool {
         matches!(self, BorrowedSegment::Field(_))
     }
+    #[must_use]
     pub fn is_index(&self) -> bool {
         matches!(self, BorrowedSegment::Index(_))
     }
+    #[must_use]
     pub fn is_invalid(&self) -> bool {
         matches!(self, BorrowedSegment::Invalid)
     }
@@ -116,9 +123,9 @@ impl quickcheck::Arbitrary for BorrowedSegment<'static> {
     fn arbitrary(g: &mut quickcheck::Gen) -> Self {
         if bool::arbitrary(g) {
             if bool::arbitrary(g) {
-                BorrowedSegment::Index((usize::arbitrary(g) % 20) as isize)
+                BorrowedSegment::Index((usize::arbitrary(g) % 20).cast_signed())
             } else {
-                BorrowedSegment::Index(-((usize::arbitrary(g) % 20) as isize))
+                BorrowedSegment::Index(-(usize::arbitrary(g) % 20).cast_signed())
             }
         } else {
             BorrowedSegment::Field(String::arbitrary(g).into())

@@ -52,7 +52,7 @@ fn community_id(
     let id = calculate_community_id(seed, src_ip, dst_ip, src_port, dst_port, protocol, false);
 
     match id {
-        Ok(id) => Ok(Value::Bytes(id.into())),
+        Ok(id) => Ok(id.into()),
         Err(err) => Err(ExpressionError::from(err.to_string())),
     }
 }
@@ -65,7 +65,7 @@ impl Function for CommunityID {
         "community_id"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Generates an ID based on the [Community ID Spec](https://github.com/corelight/community-id-spec)."
     }
 

@@ -1,0 +1,5 @@
+# result: operation would produce NaN
+
+large = to_float!("1.7976931348623157e+308")
+inf_float = large + large
+0 * inf_float

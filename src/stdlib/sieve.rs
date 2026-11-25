@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 
-static DEFAULT_REPLACE_SINGLE: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
-static DEFAULT_REPLACE_REPEATED: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
+static DEFAULT_REPLACE_SINGLE: Value = Value::from_static_str("");
+static DEFAULT_REPLACE_REPEATED: Value = Value::from_static_str("");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The original string."),
@@ -65,7 +65,7 @@ impl Function for Sieve {
         "sieve"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Keeps only matches of `pattern` in `value`.
 

@@ -9,7 +9,7 @@ impl Function for IsFloat {
         "is_float"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Check if the `value`'s type is a float."
     }
 

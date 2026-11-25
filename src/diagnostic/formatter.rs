@@ -25,7 +25,7 @@ impl<'a> Formatter<'a> {
     }
 
     pub fn enable_colors(&mut self, color: bool) {
-        self.color = color
+        self.color = color;
     }
 
     #[must_use]
@@ -56,7 +56,7 @@ impl fmt::Display for Formatter<'_> {
         f.write_str("\n")?;
 
         for diagnostic in self.diagnostics.iter() {
-            term::emit(&mut buffer, &config, &file, &diagnostic.clone().into())
+            term::emit_to_write_style(&mut buffer, &config, &file, &diagnostic.clone().into())
                 .map_err(|_| fmt::Error)?;
         }
 

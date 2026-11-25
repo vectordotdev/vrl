@@ -1,0 +1,4 @@
+# result: true
+
+cidrs = ["10.0.0.0/8"]
+ip_cidr_contains!(cidrs, { cidrs = [1]; "10.1.2.3" })

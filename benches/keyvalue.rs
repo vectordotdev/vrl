@@ -1,7 +1,6 @@
 use std::hint::black_box;
 use std::time::Duration;
 
-use bytes::Bytes;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, SamplingMode, criterion_group, criterion_main,
     measurement::WallTime,
@@ -16,7 +15,7 @@ fn make_filter() -> KeyValueFilter {
             "=",
             r"\w.\-_@",
             quotes.clone(),
-            ("|".to_string(), "|".to_string()),
+            &("|".to_string(), "|".to_string()),
         )
         .unwrap(),
         quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],
@@ -30,31 +29,26 @@ fn apply_filter_bench(c: &mut Criterion) {
 
     group.bench_function("apply_filter key=valueStr", move |b| {
         b.iter_batched(
-            || (Value::Bytes(Bytes::from("key=valueStr")), make_filter()),
+            || (Value::from("key=valueStr"), make_filter()),
             |(value, filter): (Value, KeyValueFilter)| {
                 let result = black_box(filter.apply_filter(&value)).unwrap();
                 let object = result.as_object().unwrap();
                 assert_eq!(object.len(), 1);
             },
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("apply_filter key1=value1|key2=value2", move |b| {
         b.iter_batched(
-            || {
-                (
-                    Value::Bytes(Bytes::from("key1=value1|key2=value2")),
-                    make_filter(),
-                )
-            },
+            || (Value::from("key1=value1|key2=value2"), make_filter()),
             |(value, filter): (Value, KeyValueFilter)| {
                 let result = black_box(filter.apply_filter(&value)).unwrap();
                 let object = result.as_object().unwrap();
                 assert_eq!(object.len(), 2);
             },
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -62,7 +56,7 @@ criterion_group!(
     name = benches;
     config = Criterion::default()
         .warm_up_time(Duration::from_secs(5))
-        .measurement_time(Duration::from_secs(120))
+        .measurement_time(Duration::from_mins(2))
         // degree of noise to ignore in measurements, here 1%
         .noise_threshold(0.01)
         // likelihood of noise registering as difference, here 5%

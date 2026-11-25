@@ -32,11 +32,7 @@ impl Function for DecodeCharset {
         ]
     }
 
-    fn summary(&self) -> &'static str {
-        "Decode non UTF-8 charset to UTF-8"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Decodes the `value` (a non-UTF8 string) to a UTF8 string using the specified
             [character set](https://encoding.spec.whatwg.org/#names-and-labels).
@@ -90,7 +86,7 @@ fn decode_charset(value: &[u8], from_charset: &[u8]) -> Resolved {
     let decoder = Encoding::for_label(from_charset).ok_or_else(|| create_error(from_charset))?;
 
     let (output, _, _) = decoder.decode(value);
-    Ok(Value::Bytes(output.as_bytes().to_vec().into()))
+    Ok(output.into())
 }
 
 fn create_error(from_charset: &[u8]) -> ExpressionError {

@@ -1,0 +1,16 @@
+# result:
+#
+# error[E110]: invalid argument type
+#   ┌─ :2:18
+#   │
+# 2 │ ip_cidr_contains([1], "10.1.2.3") ?? false
+#   │                  ^^^
+#   │                  │
+#   │                  this expression resolves to the exact type [integer]
+#   │                  but the parameter "cidr" expects one of string or array<string>
+#   │
+#   = learn more about error code 110 at https://errors.vrl.dev/110
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+ip_cidr_contains([1], "10.1.2.3") ?? false

@@ -5,17 +5,17 @@ mod non_wasm {
     use crate::compiler::prelude::*;
     use crate::diagnostic::{Label, Span};
     use crate::value::Value;
+    use std::fmt;
     pub(super) use std::sync::Arc;
-    use std::{collections::BTreeMap, fmt};
 
     fn parse_grok(value: &Value, pattern: &Arc<grok::Pattern>) -> Resolved {
         let bytes = value.try_bytes_utf8_lossy()?;
         match pattern.match_against(&bytes) {
             Some(matches) => {
-                let mut result = BTreeMap::new();
+                let mut result = ObjectMap::new();
 
                 for (name, value) in &matches {
-                    result.insert(name.to_string().into(), Value::from(value));
+                    result.insert(name.into(), Value::from(value));
                 }
 
                 Ok(Value::from(result))
@@ -90,7 +90,7 @@ impl Function for ParseGrok {
         "parse_grok"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` using the [`grok`](https://github.com/daschl/grok/tree/master/patterns) format. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
     }
 

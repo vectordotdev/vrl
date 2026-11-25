@@ -1,0 +1,195 @@
+name: Comment on PR
+
+on:
+  workflow_run:
+    workflows:
+      - Check Generated Docs Freshness
+      - Vector Compatibility Advisory
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
+  generated-docs:
+    needs: repo-gate
+    if: >
+      github.event.workflow_run.name == 'Check Generated Docs Freshness'
+      && github.event.workflow_run.conclusion == 'failure'
+      && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout trusted actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Download PR metadata
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: docs-check-pr
+          path: ${{ runner.temp }}/docs-check-pr
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Read PR number
+        id: metadata
+        working-directory: ${{ runner.temp }}/docs-check-pr
+        run: |
+          pr_number=$(tr -d '[:space:]' < pr-number)
+          if [[ ! "$pr_number" =~ ^[0-9]+$ ]]; then
+            echo "Invalid PR number"
+            exit 1
+          fi
+          echo "pr-number=$pr_number" >> "$GITHUB_OUTPUT"
+
+      - name: Validate result
+        id: validation
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_NUMBER: ${{ steps.metadata.outputs.pr-number }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const run = context.payload.workflow_run;
+            const { data: pull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            // Fork runs may omit PR associations; still require matching head identity.
+            const associatedPRs = run.pull_requests ?? [];
+            const matchesRun = (associatedPRs.length === 0
+              || associatedPRs.some(pr => pr.number === prNumber))
+              && pull.head.sha === run.head_sha
+              && pull.head.ref === run.head_branch
+              && pull.head.repo?.full_name === run.head_repository?.full_name;
+            if (!matchesRun || pull.state !== 'open') {
+              core.info('Ignoring an obsolete or unrelated workflow result');
+              core.setOutput('current', 'false');
+              return;
+            }
+            core.setOutput('current', 'true');
+
+      - name: Comment on PR
+        if: steps.validation.outputs.current == 'true'
+        uses: ./.github/actions/manage-pr-comment
+        with:
+          pr-number: ${{ steps.metadata.outputs.pr-number }}
+          comment-key: generated-docs-check
+          body: |
+            The `docs/generated/` folder is out of date but I was unable to push the fix automatically.
+
+            Please run the following and commit the result:
+
+            ```
+            make generate-docs
+            ```
+
+  vector-compatibility:
+    needs: repo-gate
+    if: >
+      github.event.workflow_run.name == 'Vector Compatibility Advisory'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout trusted actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Download compatibility result
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vector-compatibility-advisory
+          path: ${{ runner.temp }}/vector-compatibility-advisory
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Read compatibility result
+        id: metadata
+        working-directory: ${{ runner.temp }}/vector-compatibility-advisory
+        run: |
+          pr_number=$(tr -d '[:space:]' < pr-number)
+          outcome=$(tr -d '[:space:]' < outcome)
+          if [[ ! "$pr_number" =~ ^[0-9]+$ ]]; then
+            echo "Invalid PR number"
+            exit 1
+          fi
+          if [[ "$outcome" != "success" && "$outcome" != "failure" ]]; then
+            echo "Invalid compatibility outcome"
+            exit 1
+          fi
+          echo "pr-number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "outcome=$outcome" >> "$GITHUB_OUTPUT"
+
+      - name: Validate result
+        id: validation
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_NUMBER: ${{ steps.metadata.outputs.pr-number }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const run = context.payload.workflow_run;
+            const { data: pull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            // Fork runs may omit PR associations; still require matching head identity.
+            const associatedPRs = run.pull_requests ?? [];
+            const matchesRun = (associatedPRs.length === 0
+              || associatedPRs.some(pr => pr.number === prNumber))
+              && pull.head.sha === run.head_sha
+              && pull.head.ref === run.head_branch
+              && pull.head.repo?.full_name === run.head_repository?.full_name;
+            if (!matchesRun || pull.state !== 'open') {
+              core.info('Ignoring an obsolete or unrelated workflow result');
+              core.setOutput('current', 'false');
+              return;
+            }
+            core.setOutput('current', 'true');
+
+      - name: Post compatibility advisory
+        if: >
+          steps.validation.outputs.current == 'true'
+          && steps.metadata.outputs.outcome == 'failure'
+        uses: ./.github/actions/manage-pr-comment
+        with:
+          pr-number: ${{ steps.metadata.outputs.pr-number }}
+          comment-key: vector-compatibility-advisory
+          body: |
+            ### :warning: Vector compatibility advisory
+
+            This check tests whether Vector can update to the VRL version in this PR without additional changes. Dependency changes can make that update significantly harder. If the required Vector changes are reasonable, you can ignore this advisory. [Review the workflow run](${{ github.event.workflow_run.html_url }}) for details.
+
+      - name: Mark resolved compatibility advisory outdated
+        if: >
+          steps.validation.outputs.current == 'true'
+          && steps.metadata.outputs.outcome == 'success'
+        uses: ./.github/actions/manage-pr-comment
+        with:
+          pr-number: ${{ steps.metadata.outputs.pr-number }}
+          comment-key: vector-compatibility-advisory

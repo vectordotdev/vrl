@@ -43,7 +43,7 @@ impl Function for Ceil {
         "ceil"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Rounds the `value` up to the specified `precision`."
     }
 

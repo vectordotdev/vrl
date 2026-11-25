@@ -14,7 +14,7 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
     ua_parser::Extractor::try_from(regexes).expect("Regex file is not valid.")
 });
 
-static DEFAULT_MODE: Value = Value::Bytes(Bytes::from_static("fast".as_bytes()));
+static DEFAULT_MODE: Value = Value::from_static_str("fast");
 
 static MODE_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -58,11 +58,7 @@ impl Function for ParseUserAgent {
         "parse_user_agent"
     }
 
-    fn summary(&self) -> &'static str {
-        "parse a user agent string"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Parses the provided `value` as a user agent, which has
             [a loosely defined format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).

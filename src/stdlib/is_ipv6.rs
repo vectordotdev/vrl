@@ -14,7 +14,7 @@ impl Function for IsIpv6 {
         "is_ipv6"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Check if the string is a valid IPv6 address or not."
     }
 

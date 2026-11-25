@@ -17,14 +17,21 @@ env:
   CARGO_INCREMENTAL: '0'  # Disable incremental compilation for coverage
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   coverage:
+    # Requires Datadog OIDC credentials that aren't available on forks.
+    needs: repo-gate
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: "Install llvm-tools-preview"
         run: rustup component add llvm-tools-preview
@@ -33,7 +40,11 @@ jobs:
         run: cargo install cargo-llvm-cov
 
       - name: "Generate code coverage"
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        run: |
+          cargo llvm-cov clean --workspace
+          cargo llvm-cov --all-features --workspace --no-report
+          cargo llvm-cov run --package vrl-tests --bin vrl-tests --all-features --no-report
+          cargo llvm-cov report --package '*' --lcov --output-path lcov.info
 
       - name: Cache npm tools
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

@@ -44,7 +44,7 @@ impl Function for Floor {
         "floor"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Rounds the `value` down to the specified `precision`."
     }
 

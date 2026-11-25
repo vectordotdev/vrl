@@ -11,7 +11,7 @@ impl Function for Kebabcase {
         "kebabcase"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Takes the `value` string, and turns it into kebab-case. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically."
     }
 
@@ -80,7 +80,7 @@ impl Function for Kebabcase {
 #[derive(Debug, Clone)]
 struct KebabcaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
 }
 
 impl FunctionExpression for KebabcaseFn {

@@ -4,7 +4,6 @@ use super::{
 };
 use crate::path::parse_value_path;
 use crate::value::{ObjectMap, Value};
-use std::collections::BTreeMap;
 
 /// Errors which cause the Datadog grok algorithm to stop processing and not return a parsed result.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -33,13 +32,17 @@ pub struct ParsedGrokObject {
 }
 
 /// Parses a given source field value by applying the list of grok rules until the first match found.
+///
+/// # Errors
+///
+/// Returns an error if no rule matches or the regex engine fails while matching.
 pub fn parse_grok(
     source_field: &str,
     grok_rules: &[GrokRule],
 ) -> Result<ParsedGrokObject, FatalError> {
     for rule in grok_rules {
         match apply_grok_rule(source_field, rule) {
-            Err(FatalError::NoMatch) => continue,
+            Err(FatalError::NoMatch) => {}
             other => return other,
         }
     }
@@ -51,13 +54,13 @@ pub fn parse_grok(
 /// if any were fatal.
 ///
 /// Fatal Errors:
-/// - NoMatch - this rule does not match a given string
-/// - FailedToMatch - there was a runtime error while matching the compiled pattern against the source
+/// - `NoMatch` - this rule does not match a given string
+/// - `FailedToMatch` - there was a runtime error while matching the compiled pattern against the source
 ///
 /// Internal Errors:
-/// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
+/// - `FailedToApplyFilter` - matches the rule, but there was a runtime error while applying on of the filters
 fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObject, FatalError> {
-    let mut parsed = Value::Object(BTreeMap::new());
+    let mut parsed = Value::Object(ObjectMap::new());
     let mut internal_errors = vec![];
 
     match grok_rule.pattern.match_against(source) {
@@ -109,7 +112,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
                                     parsed.insert(field, value);
                                 }
                             },
-                        };
+                        }
                     }
                 } else {
                     // this must be a regex named capturing group (?<name>group),
@@ -117,7 +120,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
                     parsed
                         .as_object_mut()
                         .expect("parsed value is not an object")
-                        .insert(name.to_string().into(), value.into());
+                        .insert(name.into(), value.into());
                 }
             }
 
@@ -138,7 +141,7 @@ fn parse_keys_as_path(value: Value) -> Value {
     match value {
         Value::Object(map) => {
             let mut result = Value::Object(ObjectMap::new());
-            for (k, v) in map.into_iter() {
+            for (k, v) in map {
                 let path = parse_value_path(&k)
                     .unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
                 result.insert(&path, parse_keys_as_path(v));
@@ -159,7 +162,7 @@ fn postprocess_value(value: &mut Value) {
             map.values_mut().for_each(postprocess_value);
             map.retain(|_, value| {
                 !matches!(value, Value::Object(v) if v.is_empty()) && !matches!(value, Value::Null)
-            })
+            });
         }
         _ => {}
     }
@@ -171,6 +174,7 @@ mod tests {
     use crate::value::Value;
     use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
+    use std::collections::BTreeMap;
     use tracing_test::traced_test;
 
     use super::super::parse_grok_rules::parse_grok_rules;
@@ -185,7 +189,7 @@ mod tests {
                 "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"
                     .to_string(),
             ],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
         let parsed = parse_grok("2020-10-02T23:22:12.223222Z info Hello world", &rules)
@@ -211,7 +215,7 @@ mod tests {
                 r#"%{access.common} (%{number:duration:scale(1000000000)} )?"%{_referer}" "%{_user_agent}"( "%{_x_forwarded_for}")?.*"#.to_string()
             ],
             // aliases
-            btreemap! {
+            &btreemap! {
                 "access.common" => r#"%{_client_ip} %{_ident} %{_auth} \[%{_date_access}\] "(?>%{_method} |)%{_url}(?> %{_version}|)" %{_status_code} (?>%{_bytes_written}|-)"#.to_string(),
                 "_auth" => r#"%{notSpace:http.auth:nullIf("-")}"#.to_string(),
                 "_bytes_written" => "%{integer:network.bytes_written}".to_string(),
@@ -233,7 +237,7 @@ mod tests {
             parsed,
             Value::from(btreemap! {
                 "date_access" => "13/Jul/2016:10:55:36",
-                "duration" => 202000000,
+                "duration" => 202_000_000,
                 "http" => btreemap! {
                     "auth" => "frank",
                     "ident" => "-",
@@ -259,7 +263,11 @@ mod tests {
         test_grok_pattern(vec![
             ("%{number:field}", "-1.2", Ok(Value::from(-1.2_f64))),
             ("%{number:field}", "-1", Ok(Value::from(-1))),
-            ("%{numberExt:field}", "-1234e+3", Ok(Value::from(-1234000))),
+            (
+                "%{numberExt:field}",
+                "-1234e+3",
+                Ok(Value::from(-1_234_000)),
+            ),
             ("%{numberExt:field}", ".1e+3", Ok(Value::from(100))),
             ("%{integer:field}", "-2", Ok(Value::from(-2))),
             ("%{integerExt:field}", "+2", Ok(Value::from(2))),
@@ -273,17 +281,10 @@ mod tests {
     fn supports_filters() {
         test_grok_pattern(vec![
             ("%{data:field:number}", "1.0", Ok(Value::from(1))),
+            ("%{data:field:number}", "NaN", Ok(Value::from(0))),
             ("%{data:field:integer}", "1", Ok(Value::from(1))),
-            (
-                "%{data:field:lowercase}",
-                "aBC",
-                Ok(Value::Bytes("abc".into())),
-            ),
-            (
-                "%{data:field:uppercase}",
-                "Abc",
-                Ok(Value::Bytes("ABC".into())),
-            ),
+            ("%{data:field:lowercase}", "aBC", Ok(Value::from("abc"))),
+            ("%{data:field:uppercase}", "Abc", Ok(Value::from("ABC"))),
             ("%{integer:field:scale(10)}", "1", Ok(Value::from(10))),
             ("%{number:field:scale(0.5)}", "10.0", Ok(Value::from(5))),
         ]);
@@ -296,7 +297,7 @@ mod tests {
                 internal_errors: vec![],
             });
             let rules =
-                parse_grok_rules(&[filter.to_string()], BTreeMap::new()).unwrap_or_else(|error| {
+                parse_grok_rules(&[filter.to_string()], &BTreeMap::new()).unwrap_or_else(|error| {
                     panic!("failed to parse {k} with filter {filter}: {error}")
                 });
             let parsed = parse_grok(k, &rules);
@@ -323,7 +324,7 @@ mod tests {
                 parsed,
                 internal_errors: vec![],
             });
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
+            let rules = parse_grok_rules(&[filter.to_string()], &BTreeMap::new())
                 .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
@@ -335,7 +336,7 @@ mod tests {
         tests: Vec<(&str, &str, Result<ParsedGrokObject, FatalError>)>,
     ) {
         for (filter, k, v) in tests {
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
+            let rules = parse_grok_rules(&[filter.to_string()], &BTreeMap::new())
                 .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
@@ -346,7 +347,7 @@ mod tests {
     #[test]
     fn fails_on_unknown_pattern_definition() {
         assert_eq!(
-            parse_grok_rules(&["%{unknown}".to_string()], BTreeMap::new())
+            parse_grok_rules(&["%{unknown}".to_string()], &BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
             r#"failed to parse grok expression '(?m)\A%{unknown}\z': The given pattern definition name "unknown" could not be found in the definition map"#
@@ -358,7 +359,7 @@ mod tests {
         assert_eq!(
             parse_grok_rules(
                 &["%{data:field:unknownFilter}".to_string()],
-                BTreeMap::new(),
+                &BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -369,7 +370,7 @@ mod tests {
     #[test]
     fn fails_on_invalid_matcher_parameter() {
         assert_eq!(
-            parse_grok_rules(&["%{regex(1):field}".to_string()], BTreeMap::new())
+            parse_grok_rules(&["%{regex(1):field}".to_string()], &BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
             "invalid arguments for the function 'regex'"
@@ -379,7 +380,7 @@ mod tests {
     #[test]
     fn fails_on_invalid_filter_parameter() {
         assert_eq!(
-            parse_grok_rules(&["%{data:field:scale()}".to_string()], BTreeMap::new())
+            parse_grok_rules(&["%{data:field:scale()}".to_string()], &BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
             "invalid arguments for the function 'scale'"
@@ -404,8 +405,8 @@ mod tests {
             Ok(Value::from(btreemap! {
                 "nested" => btreemap! {
                     "json" =>  Value::Array(vec! [
-                        Value::from(btreemap! { "json_field1" => Value::Bytes("value2".into()) }),
-                        Value::from(btreemap! { "json_field2" => Value::Bytes("value3".into()) }),
+                        Value::from(btreemap! { "json_field1" => Value::from("value2") }),
+                        Value::from(btreemap! { "json_field2" => Value::from("value3") }),
                     ]),
                 }
             })),
@@ -421,7 +422,7 @@ mod tests {
                 "%{data::json}",
                 r#"{ "json_field1": "value2" }"#,
                 Ok(Value::from(btreemap! {
-                    "json_field1" => Value::Bytes("value2".into()),
+                    "json_field1" => Value::from("value2"),
                 })),
             ),
             // ignore non-map root-level fields
@@ -429,7 +430,7 @@ mod tests {
                 "%{notSpace:standalone_field} %{data::integer}",
                 "value1 1",
                 Ok(Value::from(btreemap! {
-                    "standalone_field" => Value::Bytes("value1".into()),
+                    "standalone_field" => Value::from("value1"),
                 })),
             ),
         ]);
@@ -439,9 +440,9 @@ mod tests {
             r#"value1 '{ "json_field1": "value2" }' '{ "json_field2": "value3" }' 3"#,
             Ok(ParsedGrokObject {
                 parsed: Value::from(btreemap! {
-                    "standalone_field" => Value::Bytes("value1".into()),
-                    "json_field1" => Value::Bytes("value2".into()),
-                    "json_field2" => Value::Bytes("value3".into())
+                    "standalone_field" => Value::from("value1"),
+                    "json_field1" => Value::from("value2"),
+                    "json_field2" => Value::from("value3")
                 }),
 
                 internal_errors: vec![InternalError::FailedToApplyFilter(
@@ -459,7 +460,7 @@ mod tests {
             "%{notSpace:field1:integer} %{data:field2:json}",
             "not_a_number not a json",
             Ok(ParsedGrokObject {
-                parsed: Value::from(BTreeMap::new()),
+                parsed: Value::from(ObjectMap::new()),
                 internal_errors: vec![
                     InternalError::FailedToApplyFilter(
                         "Integer".to_owned(),
@@ -481,7 +482,7 @@ mod tests {
                 "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"
                     .to_string(),
             ],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
         let error = parse_grok("an ungrokkable message", &rules).unwrap_err();
@@ -502,13 +503,13 @@ mod tests {
         let rules = parse_grok_rules(
             // patterns
             &[pattern],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
 
         let parsed = parse_grok(&value, &rules);
 
-        assert_eq!(parsed.unwrap_err(), FatalError::RegexEngineError)
+        assert_eq!(parsed.unwrap_err(), FatalError::RegexEngineError);
     }
 
     #[test]
@@ -518,7 +519,7 @@ mod tests {
                 r#"%{integer:nested.field} %{notSpace:nested.field:uppercase} %{notSpace:nested.field:nullIf("-")}"#
                     .to_string(),
             ],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
             .expect("couldn't parse rules");
         let parsed = parse_grok("1 info message", &rules).unwrap().parsed;
@@ -539,7 +540,7 @@ mod tests {
             // patterns
             &["%{pattern1}".to_string()],
             // aliases with a circular dependency
-            btreemap! {
+            &btreemap! {
             "pattern1" => "%{pattern2}".to_string(),
             "pattern2" => "%{pattern1}".to_string()},
         )
@@ -552,11 +553,7 @@ mod tests {
 
     #[test]
     fn extracts_field_with_regex_capture() {
-        test_grok_pattern(vec![(
-            r"(?<field>\w+)",
-            "abc",
-            Ok(Value::Bytes("abc".into())),
-        )]);
+        test_grok_pattern(vec![(r"(?<field>\w+)", "abc", Ok(Value::from("abc")))]);
 
         // the group name can only be alphanumeric,
         // though we don't validate group names(it would be unnecessary overhead at boot-time),
@@ -565,13 +562,84 @@ mod tests {
             r"(?<nested.field.name>\w+)",
             "abc",
             Ok(Value::from(btreemap! {
-                "nested.field.name" => Value::Bytes("abc".into()),
+                "nested.field.name" => Value::from("abc"),
             })),
         )]);
     }
 
     #[test]
     fn supports_date_matcher() {
+        test_grok_pattern(vec![
+            (
+                r#"%{date("dd/MMM/yyyy"):field}"#,
+                "06/Mar/2013",
+                Ok(Value::Integer(1_362_528_000_000)),
+            ),
+            (
+                r#"%{date("EEE MMM dd HH:mm:ss yyyy"):field}"#,
+                "Thu Jun 16 08:29:03 2016",
+                Ok(Value::Integer(1_466_065_743_000)),
+            ),
+            (
+                r#"%{date("dd/MMM/yyyy:HH:mm:ss Z"):field}"#,
+                "06/Mar/2013:01:36:30 +0900",
+                Ok(Value::Integer(1_362_501_390_000)),
+            ),
+            (
+                r#"%{date("yyyy-MM-dd'T'HH:mm:ss.SSSZ"):field}"#,
+                "2016-11-29T16:21:36.431+0000",
+                Ok(Value::Integer(1_480_436_496_431)),
+            ),
+            (
+                r#"%{date("yyyy-MM-dd'T'HH:mm:ss.SSSZZ"):field}"#,
+                "2016-11-29T16:21:36.431+00:00",
+                Ok(Value::Integer(1_480_436_496_431)),
+            ),
+            (
+                r#"%{date("dd/MMM/yyyy:HH:mm:ss.SSS"):field}"#,
+                "06/Feb/2009:12:14:14.655",
+                Ok(Value::Integer(1_233_922_454_655)),
+            ),
+            (
+                r#"%{date("yyyy-MM-dd HH:mm:ss.SSS z"):field}"#,
+                "2007-08-31 19:22:22.427 CET",
+                Ok(Value::Integer(1_188_580_942_427)),
+            ),
+            (
+                r#"%{date("yyyy-MM-dd HH:mm:ss.SSS zzzz"):field}"#,
+                "2007-08-31 19:22:22.427 America/Thule",
+                Ok(Value::Integer(1_188_598_942_427)),
+            ),
+            (
+                r#"%{date("yyyy-MM-dd HH:mm:ss.SSS Z"):field}"#,
+                "2007-08-31 19:22:22.427 -03:00",
+                Ok(Value::Integer(1_188_598_942_427)),
+            ),
+            (
+                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "Europe/Moscow"):field}"#,
+                "Thu Jun 16 08:29:03 2016",
+                Ok(Value::Integer(1_466_054_943_000)),
+            ),
+            (
+                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "UTC+5"):field}"#,
+                "Thu Jun 16 08:29:03 2016",
+                Ok(Value::Integer(1_466_047_743_000)),
+            ),
+            (
+                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "+3"):field}"#,
+                "Thu Jun 16 08:29:03 2016",
+                Ok(Value::Integer(1_466_054_943_000)),
+            ),
+            (
+                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "+03:00"):field}"#,
+                "Thu Jun 16 08:29:03 2016",
+                Ok(Value::Integer(1_466_054_943_000)),
+            ),
+        ]);
+    }
+
+    #[test]
+    fn supports_more_date_matcher_formats() {
         let now = Utc::now();
         let now = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
             .unwrap()
@@ -580,124 +648,59 @@ mod tests {
             .and_utc();
         test_grok_pattern(vec![
             (
-                r#"%{date("dd/MMM/yyyy"):field}"#,
-                "06/Mar/2013",
-                Ok(Value::Integer(1362528000000)),
-            ),
-            (
-                r#"%{date("EEE MMM dd HH:mm:ss yyyy"):field}"#,
-                "Thu Jun 16 08:29:03 2016",
-                Ok(Value::Integer(1466065743000)),
-            ),
-            (
-                r#"%{date("dd/MMM/yyyy:HH:mm:ss Z"):field}"#,
-                "06/Mar/2013:01:36:30 +0900",
-                Ok(Value::Integer(1362501390000)),
-            ),
-            (
-                r#"%{date("yyyy-MM-dd'T'HH:mm:ss.SSSZ"):field}"#,
-                "2016-11-29T16:21:36.431+0000",
-                Ok(Value::Integer(1480436496431)),
-            ),
-            (
-                r#"%{date("yyyy-MM-dd'T'HH:mm:ss.SSSZZ"):field}"#,
-                "2016-11-29T16:21:36.431+00:00",
-                Ok(Value::Integer(1480436496431)),
-            ),
-            (
-                r#"%{date("dd/MMM/yyyy:HH:mm:ss.SSS"):field}"#,
-                "06/Feb/2009:12:14:14.655",
-                Ok(Value::Integer(1233922454655)),
-            ),
-            (
-                r#"%{date("yyyy-MM-dd HH:mm:ss.SSS z"):field}"#,
-                "2007-08-31 19:22:22.427 CET",
-                Ok(Value::Integer(1188580942427)),
-            ),
-            (
-                r#"%{date("yyyy-MM-dd HH:mm:ss.SSS zzzz"):field}"#,
-                "2007-08-31 19:22:22.427 America/Thule",
-                Ok(Value::Integer(1188598942427)),
-            ),
-            (
-                r#"%{date("yyyy-MM-dd HH:mm:ss.SSS Z"):field}"#,
-                "2007-08-31 19:22:22.427 -03:00",
-                Ok(Value::Integer(1188598942427)),
-            ),
-            (
-                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "Europe/Moscow"):field}"#,
-                "Thu Jun 16 08:29:03 2016",
-                Ok(Value::Integer(1466054943000)),
-            ),
-            (
-                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "UTC+5"):field}"#,
-                "Thu Jun 16 08:29:03 2016",
-                Ok(Value::Integer(1466047743000)),
-            ),
-            (
-                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "+3"):field}"#,
-                "Thu Jun 16 08:29:03 2016",
-                Ok(Value::Integer(1466054943000)),
-            ),
-            (
-                r#"%{date("EEE MMM dd HH:mm:ss yyyy", "+03:00"):field}"#,
-                "Thu Jun 16 08:29:03 2016",
-                Ok(Value::Integer(1466054943000)),
-            ),
-            (
                 r#"%{date("EEE MMM dd HH:mm:ss yyyy", "-0300"):field}"#,
                 "Thu Jun 16 08:29:03 2016",
-                Ok(Value::Integer(1466076543000)),
+                Ok(Value::Integer(1_466_076_543_000)),
             ),
             (
                 r#"%{date("MMM d y HH:mm:ss z"):field}"#,
                 "Nov 16 2020 13:41:29 GMT",
-                Ok(Value::Integer(1605534089000)),
+                Ok(Value::Integer(1_605_534_089_000)),
             ),
             (
                 r#"%{date("yyyy-MM-dd HH:mm:ss.SSSS"):field}"#,
                 "2019-11-25 11:21:32.6282",
-                Ok(Value::Integer(1574680892628)),
+                Ok(Value::Integer(1_574_680_892_628)),
             ),
             (
                 r#"%{date("yyyy-MM-dd'T'HH:mm:ss.SSSZ"):field}"#,
                 "2016-09-02T15:02:29.648Z",
-                Ok(Value::Integer(1472828549648)),
+                Ok(Value::Integer(1_472_828_549_648)),
             ),
             (
                 r#"%{date("yyMMdd HH:mm:ss"):field}"#,
                 "171113 14:14:20",
-                Ok(Value::Integer(1510582460000)),
+                Ok(Value::Integer(1_510_582_460_000)),
             ),
             (
                 r#"%{date("M/d/yy HH:mm:ss z"):field}"#,
                 "5/6/18 19:40:59 GMT",
-                Ok(Value::Integer(1525635659000)),
+                Ok(Value::Integer(1_525_635_659_000)),
             ),
             (
                 r#"%{date("M/d/yy HH:mm:ss z"):field}"#,
                 "11/16/18 19:40:59 GMT",
-                Ok(Value::Integer(1542397259000)),
+                Ok(Value::Integer(1_542_397_259_000)),
             ),
             (
                 r#"%{date("M/d/yy HH:mm:ss,SSS z"):field}"#,
                 "11/16/18 19:40:59,123 GMT",
-                Ok(Value::Integer(1542397259123)),
+                Ok(Value::Integer(1_542_397_259_123)),
             ),
             (
                 r#"%{date("M/d/yy HH:mm:ss,SSSS z"):field}"#,
                 "11/16/18 19:40:59,1234 GMT",
-                Ok(Value::Integer(1542397259123)),
+                Ok(Value::Integer(1_542_397_259_123)),
             ),
             (
                 r#"%{date("M/d/yy HH:mm:ss,SSSSSSSSS z"):field}"#,
                 "11/16/18 19:40:59,123456789 GMT",
-                Ok(Value::Integer(1542397259123)),
+                Ok(Value::Integer(1_542_397_259_123)),
             ),
             (
                 r#"%{date("M/d/yy HH:mm:ss.SSSS z"):field}"#,
                 "11/16/18 19:40:59.1234 GMT",
-                Ok(Value::Integer(1542397259123)),
+                Ok(Value::Integer(1_542_397_259_123)),
             ),
             // date is missing - assume the current day
             (
@@ -719,12 +722,14 @@ mod tests {
                 Ok(Value::Integer(now.timestamp() * 1000)),
             ),
         ]);
+    }
 
-        // check error handling
+    #[test]
+    fn rejects_invalid_date_matchers() {
         assert_eq!(
             parse_grok_rules(
                 &[r#"%{date("ABC:XYZ"):field}"#.to_string()],
-                BTreeMap::new(),
+                &BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -733,7 +738,7 @@ mod tests {
         assert_eq!(
             parse_grok_rules(
                 &[r#"%{date("EEE MMM dd HH:mm:ss yyyy", "unknown timezone"):field}"#.to_string()],
-                BTreeMap::new(),
+                &BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -812,7 +817,7 @@ mod tests {
                 "%{data:field:array}",
                 "abc",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::from(ObjectMap::new()),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Array(..)".to_owned(),
                         "\"abc\"".to_owned(),
@@ -824,7 +829,7 @@ mod tests {
                 "%{data:field:array(scale(10))}",
                 "[a,b]",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::from(ObjectMap::new()),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Scale(..)".to_owned(),
                         "\"a\"".to_owned(),
@@ -902,7 +907,7 @@ mod tests {
             ),
             // ignore space after the delimiter(comma)
             (
-                r#"%{data::keyvalue}"#,
+                r"%{data::keyvalue}",
                 "key1=value1, key2=value2",
                 Ok(Value::from(btreemap! {
                     "key1" => "value1",
@@ -934,6 +939,12 @@ mod tests {
                     "key2" => "value2",
                 })),
             ),
+        ]);
+    }
+
+    #[test]
+    fn parses_keyvalue_values() {
+        test_full_grok(vec![
             (
                 r#"%{data::keyvalue(":=","","<>")}"#,
                 r#"key1:=valueStr key2:=</valueStr2> key3:="valueStr3""#,
@@ -961,7 +972,7 @@ mod tests {
             (
                 "%{data::keyvalue}",
                 "key:=valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             // empty key or null
             (
@@ -983,7 +994,7 @@ mod tests {
             (
                 "%{data::keyvalue}",
                 "=,=value",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             // type inference
             (
@@ -992,7 +1003,7 @@ mod tests {
                 Ok(Value::from(btreemap! {
                     "float" => Value::Float(NotNan::new(1.2).expect("not a float")),
                     "boolean" => Value::Boolean(true),
-                    "string" => Value::Bytes("abc".into()),
+                    "string" => Value::from("abc"),
                     "integer1" => Value::Integer(11),
                     "integer2" => Value::Integer(12)
                 })),
@@ -1004,7 +1015,7 @@ mod tests {
                 Ok(Value::from(btreemap! {
                     "float" => Value::Float(NotNan::new(1.2).expect("not a float")),
                     "boolean" => Value::Boolean(true),
-                    "string" => Value::Bytes("abc".into()),
+                    "string" => Value::from("abc"),
                     "integer1" => Value::Integer(11),
                     "integer2" => Value::Integer(12)
                 })),
@@ -1013,18 +1024,53 @@ mod tests {
             (
                 "%{data::keyvalue}",
                 "key = valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             (
                 "%{data::keyvalue}",
                 "key= valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             (
                 "%{data::keyvalue}",
                 "key =valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
+        ]);
+    }
+
+    #[test]
+    fn parses_keyvalue_nan_as_string() {
+        let inf = Value::Float(NotNan::new(f64::INFINITY).expect("infinity is not NaN"));
+        let neg_inf = Value::Float(NotNan::new(f64::NEG_INFINITY).expect("infinity is not NaN"));
+        test_full_grok(vec![
+            (
+                "%{data::keyvalue}",
+                "a=NaN b=nan c=NAN d=inf e=-1e999 f=1e999 g=1",
+                Ok(Value::from(btreemap! {
+                    "a" => "NaN",
+                    "b" => "nan",
+                    "c" => "NAN",
+                    "d" => inf.clone(),
+                    "e" => neg_inf,
+                    "f" => inf,
+                    "g" => 1,
+                })),
+            ),
+            (
+                r#"%{data::keyvalue(" = ")}"#,
+                "count = 0 avg = NaN",
+                Ok(Value::from(btreemap! {
+                    "count" => 0,
+                    "avg" => "NaN",
+                })),
+            ),
+        ]);
+    }
+
+    #[test]
+    fn parses_keyvalue_edge_cases() {
+        test_full_grok(vec![
             (
                 r#"%{data::keyvalue(":")}"#,
                 "kafka_cluster_status:8ca7b736f0aa43e5",
@@ -1078,8 +1124,8 @@ mod tests {
             ),
             // append values with the same key
             (
-                r#"%{data::keyvalue}"#,
-                r#"a=1, a=1, a=2"#,
+                r"%{data::keyvalue}",
+                r"a=1, a=1, a=2",
                 Ok(Value::from(btreemap! {
                     "a" => vec![1, 1, 2]
                 })),
@@ -1087,7 +1133,7 @@ mod tests {
             // trim string values
             (
                 r#"%{data::keyvalue("="," ")}"#,
-                r#"a= foo"#,
+                r"a= foo",
                 Ok(Value::from(btreemap! {
                     "a" => "foo"
                 })),
@@ -1100,7 +1146,7 @@ mod tests {
             ),
             // parses valid octal numbers (start with 0) as decimals
             (
-                r#"%{data::keyvalue}"#,
+                r"%{data::keyvalue}",
                 "a=07",
                 Ok(Value::from(btreemap! {
                     "a" => 7
@@ -1108,7 +1154,7 @@ mod tests {
             ),
             // parses invalid octal numbers (start with 0) as strings
             (
-                r#"%{data::keyvalue}"#,
+                r"%{data::keyvalue}",
                 "a=08",
                 Ok(Value::from(btreemap! {
                     "a" => "08"
@@ -1123,7 +1169,7 @@ mod tests {
             // patterns
             &["%{notSpace:field:number} %{alias}".to_string()],
             // aliases
-            btreemap! {
+            &btreemap! {
                 "alias" => "%{notSpace:field:integer}".to_string()
             },
         )
@@ -1144,7 +1190,7 @@ mod tests {
             // patterns
             &["%{alias:field:uppercase}".to_string()],
             // aliases
-            btreemap! {
+            &btreemap! {
                 "alias" => "%{notSpace:subfield1} %{notSpace:subfield2:integer}".to_string()
             },
         )
@@ -1154,8 +1200,8 @@ mod tests {
         assert_eq!(
             parsed,
             Value::from(btreemap! {
-                 "field" =>  Value::Bytes("A 1".into()),
-                 "subfield1" =>  Value::Bytes("a".into()),
+                 "field" =>  Value::from("A 1"),
+                 "subfield1" =>  Value::from("a"),
                  "subfield2" =>  Value::Integer(1)
             })
         );
@@ -1168,7 +1214,7 @@ mod tests {
             "(%{integer:field_int}|%{data:field_str})",
             "abc",
             Ok(Value::from(btreemap! {
-                "field_str" =>  Value::Bytes("abc".into()),
+                "field_str" =>  Value::from("abc"),
             })),
         )]);
         assert!(!logs_contain("Error applying filter"));
@@ -1284,7 +1330,7 @@ mod tests {
         test_grok_pattern(vec![(
             "%{data:field:decodeuricomponent}",
             "%2Fservice%2Ftest",
-            Ok(Value::Bytes("/service/test".into())),
+            Ok(Value::from("/service/test")),
         )]);
     }
 
@@ -1319,9 +1365,9 @@ mod tests {
     fn parses_sample() {
         test_full_grok(vec![(
             r#"\[%{date("yyyy-MM-dd HH:mm:ss,SSS"):date}\]\[%{notSpace:level}\s*\]\[%{notSpace:logger.thread_name}-#%{integer:logger.thread_id}\]\[%{notSpace:logger.name}\] .*"#,
-            r#"[2020-04-03 07:01:55,248][INFO ][exchange-worker-#43][FileWriteAheadLogManager] Started write-ahead log manager [mode=LOG_ONLY]"#,
+            r"[2020-04-03 07:01:55,248][INFO ][exchange-worker-#43][FileWriteAheadLogManager] Started write-ahead log manager [mode=LOG_ONLY]",
             Ok(Value::from(btreemap! {
-              "date"=> 1585897315248_i64,
+              "date"=> 1_585_897_315_248_i64,
               "level"=> "INFO",
               "logger"=> btreemap! {
                 "name"=> "FileWriteAheadLogManager",
@@ -1338,7 +1384,7 @@ mod tests {
             (
                 "%{data::json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
+                Ok(Value::from(btreemap!(
                     "root" => btreemap! (
                         "string" => "abc"
                     )
@@ -1347,7 +1393,7 @@ mod tests {
             (
                 "%{data:field:json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
+                Ok(Value::from(btreemap!(
                     "field" => btreemap!(
                         "root" => btreemap! (
                             "string" => "abc"
@@ -1357,7 +1403,7 @@ mod tests {
             (
                 r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
                 "-",
-                Ok(Value::Object(btreemap!())),
+                Ok(Value::from(btreemap!())),
             ),
         ]);
     }
@@ -1366,7 +1412,7 @@ mod tests {
         test_full_grok(vec![(
             "%{data::json}",
             r#"{"a.b": "c"}"#,
-            Ok(Value::Object(btreemap!(
+            Ok(Value::from(btreemap!(
                 "a" => btreemap! (
                     "b" => "c"
                 )

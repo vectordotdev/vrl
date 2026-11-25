@@ -28,28 +28,46 @@ mod non_wasm {
     use tokio::time::Duration;
     use tokio::{runtime, task};
 
-    static STD_CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| build_client(None));
+    static STD_CLIENT: LazyLock<Result<ClientWithMiddleware, ExpressionError>> =
+        LazyLock::new(|| build_client(None));
 
-    fn build_client(proxies: Option<Vec<Proxy>>) -> ClientWithMiddleware {
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
-
-        let mut client_builder = Client::builder()
-            .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(10));
-
-        if let Some(proxies) = proxies {
-            for proxy in proxies {
-                client_builder = client_builder.proxy(proxy);
-            }
+    fn build_client(
+        proxies: Option<&[Proxy]>,
+    ) -> Result<ClientWithMiddleware, ExpressionError> {
+        // Respect a provider installed by the embedding application; otherwise use ring.
+        if rustls::crypto::CryptoProvider::get_default().is_none() {
+            let _ = rustls::crypto::ring::default_provider().install_default();
         }
 
-        let client = client_builder
-            .build()
-            .expect("Failed to create HTTP client");
+        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
 
-        ClientBuilder::new(client)
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+        let client_builder = || {
+            let mut builder = Client::builder()
+                .connect_timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(10));
+
+            if let Some(proxies) = proxies {
+                for proxy in proxies {
+                    builder = builder.proxy(proxy.clone());
+                }
+            }
+
+            builder
+        };
+
+        let client = client_builder()
             .build()
+            .or_else(|_| {
+                // The platform verifier can fail to initialize, e.g. on Linux without
+                // CA certificates. An empty trust store preserves plain HTTP while
+                // rejecting every HTTPS certificate, including redirects and proxies.
+                client_builder().tls_certs_only([]).build()
+            })
+            .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
+
+        Ok(ClientBuilder::new(client)
+            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+            .build())
     }
 
     /// Redacts sensitive header values to prevent them from appearing in error messages.
@@ -204,16 +222,16 @@ mod non_wasm {
                 (None, None) => Ok(Self::no_proxies()),
                 // Only http proxy specified and could resolve as constant
                 (Some(Some(http)), None) => {
-                    Ok(Self::Client(build_client(make_proxies(Some(http), None)?)))
+                    Ok(Self::Client(build_client(make_proxies(Some(http), None)?.as_deref())?))
                 }
                 // Only https proxy specified and could resolve as constant
                 (None, Some(Some(https))) => {
-                    Ok(Self::Client(build_client(make_proxies(None, Some(https))?)))
+                    Ok(Self::Client(build_client(make_proxies(None, Some(https))?.as_deref())?))
                 }
                 // Both proxies specified and could resolve as constants
                 (Some(Some(http)), Some(Some(https))) => Ok(Self::Client(build_client(
-                    make_proxies(Some(http), Some(https))?,
-                ))),
+                    make_proxies(Some(http), Some(https))?.as_deref(),
+                )?)),
                 // Couldn't evaluate as constants
                 _ => Ok(Self::new_proxies_no_const_resolve(http_proxy, https_proxy)),
             }
@@ -254,9 +272,9 @@ mod non_wasm {
                         .transpose()?;
 
                     if let Some(proxies) = make_proxies(http_proxy, https_proxy)? {
-                        Ok(build_client(Some(proxies)))
+                        build_client(Some(&proxies))
                     } else {
-                        Ok(STD_CLIENT.clone())
+                        STD_CLIENT.clone()
                     }
                 }
             }
@@ -321,45 +339,48 @@ mod non_wasm {
 #[allow(clippy::wildcard_imports)]
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
+use std::sync::LazyLock;
 
-static DEFAULT_METHOD: Value = Value::Bytes(Bytes::from_static("get".as_bytes()));
-static DEFAULT_HEADERS: Value = Value::Object(std::collections::BTreeMap::new());
-static DEFAULT_BODY: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
+static DEFAULT_METHOD: Value = Value::from_static_str("get");
+static DEFAULT_HEADERS: LazyLock<Value> = LazyLock::new(|| Value::Object(ObjectMap::new()));
+static DEFAULT_BODY: Value = Value::from_static_str("");
 static DEFAULT_REDACT_HEADERS: Value = Value::Boolean(true);
 
-const PARAMETERS: &[Parameter] = &[
-    Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
-    Parameter::optional(
-        "method",
-        kind::BYTES,
-        "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
-    )
-    .default(&DEFAULT_METHOD),
-    Parameter::optional(
-        "headers",
-        kind::OBJECT,
-        "An object containing HTTP headers to send with the request.",
-    )
-    .default(&DEFAULT_HEADERS),
-    Parameter::optional("body", kind::BYTES, "The request body content to send.")
-        .default(&DEFAULT_BODY),
-    Parameter::optional(
-        "http_proxy",
-        kind::BYTES,
-        "HTTP proxy URL to use for the request.",
-    ),
-    Parameter::optional(
-        "https_proxy",
-        kind::BYTES,
-        "HTTPS proxy URL to use for the request.",
-    ),
-    Parameter::optional(
-        "redact_headers",
-        kind::BOOLEAN,
-        "Whether to redact sensitive header values in error messages.",
-    )
-    .default(&DEFAULT_REDACT_HEADERS),
-];
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
+        Parameter::optional(
+            "method",
+            kind::BYTES,
+            "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+        )
+        .default(&DEFAULT_METHOD),
+        Parameter::optional(
+            "headers",
+            kind::OBJECT,
+            "An object containing HTTP headers to send with the request.",
+        )
+        .default(&DEFAULT_HEADERS),
+        Parameter::optional("body", kind::BYTES, "The request body content to send.")
+            .default(&DEFAULT_BODY),
+        Parameter::optional(
+            "http_proxy",
+            kind::BYTES,
+            "HTTP proxy URL to use for the request.",
+        ),
+        Parameter::optional(
+            "https_proxy",
+            kind::BYTES,
+            "HTTPS proxy URL to use for the request.",
+        ),
+        Parameter::optional(
+            "redact_headers",
+            kind::BOOLEAN,
+            "Whether to redact sensitive header values in error messages.",
+        )
+        .default(&DEFAULT_REDACT_HEADERS),
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct HttpRequest;
@@ -369,7 +390,7 @@ impl Function for HttpRequest {
         "http_request"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Makes an HTTP request to the specified URL."
     }
 
@@ -467,7 +488,7 @@ impl Function for HttpRequest {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS
+        PARAMETERS.as_slice()
     }
 
     #[cfg(not(target_arch = "wasm32"))]
