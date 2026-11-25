@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 
 fn uuid_from_friendly_id(value: &Value) -> Resolved {
     let mut buf = [0; 36];
@@ -10,7 +9,7 @@ fn uuid_from_friendly_id(value: &Value) -> Resolved {
             let uuid = uuid::Uuid::from_u128(w128)
                 .hyphenated()
                 .encode_lower(&mut buf);
-            Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
+            Ok(Value::from(&*uuid))
         }
     }
 }
@@ -23,7 +22,7 @@ impl Function for UuidFromFriendlyId {
         "uuid_from_friendly_id"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Convert a Friendly ID (base62 encoding a 128-bit word) to a UUID."
     }
 

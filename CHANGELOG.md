@@ -4,6 +4,178 @@ Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 <!-- changelog start -->
 
+## [0.39.0 (2026-11-16)](https://github.com/vectordotdev/vrl/releases/tag/v0.39.0)
+
+### New Features
+
+- Added a new `log10` function that computes the base 10 logarithm of a number, for example to convert milliwatts to dBm with `10 * log10!(mw)`.
+
+  *Thanks to [lchabert](https://github.com/lchabert) for contributing PR [#2012](https://github.com/vectordotdev/vrl/pull/2012)!*
+- Added a new `pow` function that raises a number to a power, for example to convert dBm to milliwatts with `pow!(10, dbm / 10)`.
+
+  *Thanks to [lchabert](https://github.com/lchabert) for contributing PR [#2012](https://github.com/vectordotdev/vrl/pull/2012)!*
+
+### Fixes
+
+- VRL now rejects field paths with array indices outside the `isize` range instead of silently wrapping to a different index.
+
+  *Thanks to [pront](https://github.com/pront) for contributing PR [#2045](https://github.com/vectordotdev/vrl/pull/2045)!*
+
+
+## [0.38.0 (2026-10-28)](https://github.com/vectordotdev/vrl/releases/tag/v0.38.0)
+
+### Security
+
+- Updated `rustls-webpki` to 0.103.16 to address [RUSTSEC-2026-0382](https://rustsec.org/advisories/RUSTSEC-2026-0382). TLS certificate verification in `http_request` now rejects certificate chains that contain the compromised eMudhra emSign intermediate certificates, even when the system trust store still trusts their root.
+
+  *Thanks to [thomasqueirozb](https://github.com/thomasqueirozb) for contributing PR [#2008](https://github.com/vectordotdev/vrl/pull/2008)!*
+
+### New Features
+
+- Added a new `range` function that generates an array of integers from `start` (inclusive) to `end` (exclusive), with an optional `step`.
+
+  *Thanks to [lchabert](https://github.com/lchabert) for contributing PR [#1994](https://github.com/vectordotdev/vrl/pull/1994)!*
+
+### Enhancements
+
+- `http_request` now uses the platform certificate verifier for HTTPS connections.
+
+  *Thanks to [pront](https://github.com/pront) for contributing PR [#2026](https://github.com/vectordotdev/vrl/pull/2026)!*
+- Accept `critical` keyword in `to_syslog_severity` in addition to `crit`.
+
+  *Thanks to [slopggobblercobbler81](https://github.com/slopggobblercobbler81) for contributing PR [#2010](https://github.com/vectordotdev/vrl/pull/2010)!*
+- VRL programs that assign objects or arrays now run faster and allocate less: an assignment whose value
+  isn't used (for example, any statement that isn't the last expression of a block) no longer makes a deep
+  copy of the assigned value.
+
+  *Thanks to [lukesteensen](https://github.com/lukesteensen) for contributing PR [#2002](https://github.com/vectordotdev/vrl/pull/2002)!*
+
+### Fixes
+
+- `to_unix_timestamp` with `unit: "nanoseconds"` is now correctly marked as fallible by the
+  compiler. The conversion can fail at runtime when the timestamp is out of range for a
+  64-bit nanosecond value, but the compiler previously rejected error handling for this
+  call as unnecessary.
+
+  Programs that call `to_unix_timestamp` with `unit: "nanoseconds"` are affected: they no
+  longer compile until the error is handled. Other units are unaffected.
+
+  **Before**
+
+  ```vrl
+  to_unix_timestamp(ts, unit: "nanoseconds")
+  ```
+
+  **After**
+
+  ```vrl
+  to_unix_timestamp!(ts, unit: "nanoseconds")
+  ```
+
+  or with error coalescing:
+
+  ```vrl
+  to_unix_timestamp(ts, unit: "nanoseconds") ?? 0
+  ```
+
+  *Thanks to [suryakant-source](https://github.com/suryakant-source) for contributing PR [#2001](https://github.com/vectordotdev/vrl/pull/2001)!*
+
+
+## [0.37.0 (2026-10-19)](https://github.com/vectordotdev/vrl/releases/tag/v0.37.0)
+
+### Enhancements
+
+- Avoid allocating lookup paths for each event and metadata field read.
+
+  *Thanks to [gwenaskell](https://github.com/gwenaskell) for contributing PR [#1987](https://github.com/vectordotdev/vrl/pull/1987)!*
+- VRL variable subpath reads clone only the selected value, reducing the cost of reading fields from large objects and arrays.
+
+  *Thanks to [gwenaskell](https://github.com/gwenaskell) for contributing PR [#1984](https://github.com/vectordotdev/vrl/pull/1984)!*
+
+### Fixes
+
+- The lexer no longer panics on a program with consecutive comment lines inside a block when a
+  later comment contains a non-ASCII character, and no longer fails to lex such a program when a
+  later comment contains a quote.
+
+  *Thanks to [DeviousCardi](https://github.com/DeviousCardi) for contributing PR [#1995](https://github.com/vectordotdev/vrl/pull/1995)!*
+- The `keyvalue` filter in `parse_grok` and `parse_groks` no longer panics on unquoted `NaN` values
+  such as `ratio=NaN`. These values are now kept as strings.
+
+  *Thanks to [tessneau](https://github.com/tessneau) for contributing PR [#1990](https://github.com/vectordotdev/vrl/pull/1990)!*
+
+
+## [0.36.0 (2026-10-01)](https://github.com/vectordotdev/vrl/releases/tag/v0.36.0)
+
+### Breaking Changes & Upgrade Guide
+
+- Several stdlib functions now declare element-kind constraints on array parameters, enabling the compiler to detect element-type mismatches at compile time and automatically infer call-site infallibility.
+
+  **Before:** passing a string-literal array required `!` because the compiler assumed it could fail:
+  ```
+  join!(["sources", "transforms", "sinks"], separator: ", ")
+  ```
+
+  **After:** when the compiler can prove the elements are strings, `!` is unnecessary (and `!` now triggers a warning):
+  ```
+  join(["sources", "transforms", "sinks"], separator: ", ")
+  ```
+
+  Passing the wrong element type (e.g. `join([1, 2, 3])`) is now a hard compile error instead of a runtime failure.
+
+  Affected functions: `join`, `contains_all`, `tally`, `encode_key_value`, `encode_logfmt`, `ip_cidr_contains`, `parse_groks`.
+
+  *Thanks to [pront](https://github.com/pront) for contributing PR [#1861](https://github.com/vectordotdev/vrl/pull/1861)!*
+
+### New Features
+
+- Add `break` statement support for early loop exit within `for_each` closures.
+
+  *Thanks to [jimmystewpot](https://github.com/jimmystewpot) for contributing PR [#1931](https://github.com/vectordotdev/vrl/pull/1931)!*
+
+### Enhancements
+
+- Optimize `md5` runtime performance with stack-buffered hex encoding and compile-time constant evaluation for literals.
+
+  *Thanks to [jimmystewpot](https://github.com/jimmystewpot) for contributing PR [#1930](https://github.com/vectordotdev/vrl/pull/1930)!*
+- Improve `for_each` performance and reduce memory allocations by iterating over collections directly, binding only the closure parameters that are used, and reusing compiler variable slots across iterations. Benchmarks show a 23–41% throughput improvement for arrays and objects.
+
+  *Thanks to [jimmystewpot](https://github.com/jimmystewpot) for contributing PR [#1932](https://github.com/vectordotdev/vrl/pull/1932)!*
+- Optimise `merge` runtime performance and memory usage with zero-clone ownership transfer, single-pass entry traversal, size-adaptive shallow merging, and compile-time constant evaluation for literals, while hardening against deep recursion stack overflows and resolving type definition unsoundness for deep merges. Benchmarks show up to a 120% throughput increase for asymmetric merges and 26% for large flat objects.
+
+  *Thanks to [jimmystewpot](https://github.com/jimmystewpot) for contributing PR [#1953](https://github.com/vectordotdev/vrl/pull/1953)!*
+- Bump `convert_case` from 0.7.1 to 0.12.0, improving string casing function performance (`camelcase`, `snakecase`, `pascalcase`, `kebabcase`, `screamingsnakecase`) by approximately 70%.
+
+  *Thanks to [jimmystewpot](https://github.com/jimmystewpot) for contributing PR [#1961](https://github.com/vectordotdev/vrl/pull/1961)!*
+- Optimize `sha1`, `sha2`, and `sha3` runtime performance with stack-buffered hex encoding and compile-time constant evaluation for literals.
+
+  *Thanks to [bruceg](https://github.com/bruceg) for contributing PR [#1951](https://github.com/vectordotdev/vrl/pull/1951)!*
+
+### Fixes
+
+- Fixed `uuid_v7` to preserve the supplied timestamp at millisecond precision.
+
+  *Thanks to [abbit](https://github.com/abbit) for contributing PR [#1956](https://github.com/vectordotdev/vrl/pull/1956)!*
+
+
+## [0.35.0 (2026-08-20)](https://github.com/vectordotdev/vrl/releases/tag/v0.35.0)
+
+### Enhancements
+
+- The `parse_aws_vpc_flow_log` function now recognizes all fields introduced in AWS VPC Flow Logs versions 7 through 11, including the v7 ECS metadata fields, v8 `reject_reason`, v9 `resource_id`, v10 `encryption_status`, and the v11 tag/interface/next-hop fields.
+
+  [PR #1879](https://github.com/vectordotdev/vrl/pull/1879) by [@avestuk](https://github.com/avestuk)
+
+### Fixes
+
+- Fixed `round`'s type definition, which previously always claimed to return an integer even though it returns a float for float inputs.
+
+  [PR #1862](https://github.com/vectordotdev/vrl/pull/1862) by [@thomasqueirozb](https://github.com/thomasqueirozb)
+- Prevent float arithmetic that produces NaN from panicking or silently returning zero. Such operations now return a runtime error.
+
+  [PR #1890](https://github.com/vectordotdev/vrl/pull/1890) by [@pront](https://github.com/pront)
+
+
 ## [0.34.0 (2026-07-13)](https://github.com/vectordotdev/vrl/releases/tag/v0.34.0)
 
 ### New Features

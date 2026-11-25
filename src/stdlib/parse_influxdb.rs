@@ -18,7 +18,7 @@ fn influxdb_line_to_metrics(line: ParsedLine) -> Result<Vec<ObjectMap>, Expressi
 
     let tags: Option<ObjectMap> = series.tag_set.as_ref().map(|tags| {
         tags.iter()
-            .map(|t| (t.0.to_string().into(), t.1.to_string().into()))
+            .map(|t| (KeyString::from(&*t.0), Value::from(&*t.1)))
             .collect()
     });
 
@@ -94,9 +94,8 @@ impl From<Error> for ExpressionError {
     }
 }
 
-fn parse_influxdb(bytes: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
-    let line = String::from_utf8_lossy(&bytes);
+fn parse_influxdb(bytes: &Value) -> Resolved {
+    let line = bytes.try_bytes_utf8_lossy()?;
     let parsed_line = influxdb_line_protocol::parse_lines(&line);
 
     let metrics = parsed_line
@@ -130,11 +129,7 @@ impl Function for ParseInfluxDB {
         "parse_influxdb"
     }
 
-    fn summary(&self) -> &'static str {
-        "parse an InfluxDB line protocol string into a list of vector-compatible metrics"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` as an [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/) string, producing a list of Vector-compatible metrics."
     }
 
@@ -276,7 +271,7 @@ impl FunctionExpression for ParseInfluxDBFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
-        parse_influxdb(value)
+        parse_influxdb(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

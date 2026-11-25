@@ -234,13 +234,14 @@ pub enum Expr {
     Unary(Node<Unary>),
     Abort(Node<Abort>),
     Return(Node<Return>),
+    Break(Node<Break>),
 }
 
 impl fmt::Debug for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
-            Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Op, Query,
+            Return, Unary, Variable,
         };
 
         let value = match self {
@@ -255,6 +256,7 @@ impl fmt::Debug for Expr {
             Unary(v) => format!("{v:?}"),
             Abort(v) => format!("{v:?}"),
             Return(v) => format!("{v:?}"),
+            Break(v) => format!("{v:?}"),
         };
 
         write!(f, "Expr({value})")
@@ -264,8 +266,8 @@ impl fmt::Debug for Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
-            Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Op, Query,
+            Return, Unary, Variable,
         };
 
         match self {
@@ -280,6 +282,7 @@ impl fmt::Display for Expr {
             Unary(v) => v.fmt(f),
             Abort(v) => v.fmt(f),
             Return(v) => v.fmt(f),
+            Break(v) => v.fmt(f),
         }
     }
 }
@@ -1248,5 +1251,24 @@ impl fmt::Display for Return {
 impl fmt::Debug for Return {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Return({:?})", self.expr)
+    }
+}
+
+// -----------------------------------------------------------------------------
+// break
+// -----------------------------------------------------------------------------
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Break;
+
+impl fmt::Display for Break {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "break")
+    }
+}
+
+impl fmt::Debug for Break {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Break")
     }
 }

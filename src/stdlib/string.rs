@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 
 fn string(value: Value) -> Resolved {
     match value {
-        v @ Value::Bytes(_) => Ok(v),
+        v if v.is_bytes() => Ok(v),
         v => Err(format!("expected string, got {}", v.kind()).into()),
     }
 }
@@ -15,7 +15,7 @@ impl Function for String {
         "string"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns `value` if it is a string, otherwise returns an error. This enables the type checker to guarantee that the returned value is a string and can be used in any function that expects a string."
     }
 

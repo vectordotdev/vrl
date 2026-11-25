@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use crate::compiler::prelude::*;
 
-static DEFAULT_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_SEPARATOR: Value = Value::from_static_str(".");
 static DEFAULT_RECURSIVE: Value = Value::Boolean(true);
 
 const PARAMETERS: &[Parameter] = &[
@@ -44,7 +44,7 @@ where
         .into_iter()
         .map(|(key, value)| {
             let (head, rest) = match key.split_once(separator) {
-                Some((key, rest)) => (key.to_string().into(), Some(rest.to_string().into())),
+                Some((key, rest)) => (key.into(), Some(rest.into())),
                 None => (key.clone(), None),
             };
             (head, rest, value)
@@ -120,7 +120,7 @@ impl Function for Unflatten {
         "unflatten"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Unflattens the `value` into a nested representation."
     }
 

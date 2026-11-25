@@ -19,7 +19,7 @@ impl Function for SplitPath {
         "split_path"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Splits the given `path` into its constituent components, returning an array of strings. Each component represents a part of the file system path hierarchy."
     }
 

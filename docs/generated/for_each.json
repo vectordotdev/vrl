@@ -38,6 +38,11 @@
       "title": "Iterate over an array",
       "source": "count = 0\nfor_each([1, 2, 3]) -> |index, value| {\n    count = count + index + value\n}\ncount\n",
       "return": 9
+    },
+    {
+      "title": "Early termination with break",
+      "source": "found = null\nfor_each([1, 2, 3, 4, 5]) -> |_index, value| {\n    if value == 3 {\n        found = value\n        break\n    }\n}\nfound\n",
+      "return": 3
     }
   ],
   "pure": true

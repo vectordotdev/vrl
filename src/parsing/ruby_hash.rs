@@ -12,6 +12,12 @@ use nom::{
 };
 use std::num::ParseIntError;
 
+/// Parses a Ruby hash literal into a VRL value.
+///
+/// # Errors
+///
+/// Returns an error if the input is not a valid Ruby hash literal or contains
+/// trailing non-whitespace characters.
 pub fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
     let result = parse_hash(input)
         .map_err(|err| match err {
@@ -89,14 +95,10 @@ fn parse_nil<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Val
     value(Value::Null, tag("nil")).parse(input)
 }
 
-fn parse_bytes<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Bytes, E> {
-    context(
-        "bytes",
-        map(alt((parse_str('"'), parse_str('\''))), |value| {
-            Bytes::copy_from_slice(value.as_bytes())
-        }),
-    )
-    .parse(input)
+fn parse_bytes<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
+    input: &'a str,
+) -> IResult<&'a str, &'a str, E> {
+    context("bytes", alt((parse_str('"'), parse_str('\'')))).parse(input)
 }
 
 fn parse_symbol_key<T, E: ParseError<T>>(input: T) -> IResult<T, T, E>
@@ -198,7 +200,7 @@ fn parse_value<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
             parse_hash,
             parse_array,
             map(parse_colon_key, Value::from),
-            map(parse_bytes, Value::Bytes),
+            map(parse_bytes, Value::from),
             map(double, |value| Value::Float(NotNan::new(value).unwrap())),
             map(parse_boolean, Value::Boolean),
         )),
@@ -209,6 +211,13 @@ fn parse_value<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_string(value: &Value, expected: &str) {
+        match value {
+            Value::String(actual) => assert_eq!(AsRef::<str>::as_ref(actual), expected),
+            _ => panic!("expected Value::String({expected:?}), got {value:?}"),
+        }
+    }
 
     #[test]
     fn test_parse_empty_object() {
@@ -226,9 +235,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ :key => "foo", :number => 500 }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        let value = result.get("key").unwrap();
-        assert!(value.is_bytes());
-        assert_eq!(value.as_bytes().unwrap(), "foo");
+        assert_string(result.get("key").unwrap(), "foo");
         assert!(result.get("number").unwrap().is_float());
     }
 
@@ -237,9 +244,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ key: "foo" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        let value = result.get("key").unwrap();
-        assert!(value.is_bytes());
-        assert_eq!(value.as_bytes().unwrap(), "foo");
+        assert_string(result.get("key").unwrap(), "foo");
     }
 
     #[test]
@@ -250,7 +255,7 @@ mod tests {
             .unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get("hello").unwrap().is_bytes());
+        assert_string(result.get("hello").unwrap(), "world");
         assert!(result.get("number").unwrap().is_float());
         assert!(result.get("float").unwrap().is_float());
         assert!(result.get("array").unwrap().is_array());
@@ -264,7 +269,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ 42 => "hello world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get("42").unwrap().is_bytes());
+        assert_string(result.get("42").unwrap(), "hello world");
     }
 
     #[test]
@@ -275,9 +280,9 @@ mod tests {
         .unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get("colon").unwrap().is_bytes());
-        assert!(result.get("double").unwrap().is_bytes());
-        assert!(result.get("simple").unwrap().is_bytes());
+        assert_string(result.get("colon").unwrap(), "hello world");
+        assert_string(result.get("double").unwrap(), "quote");
+        assert_string(result.get("simple").unwrap(), "quote");
     }
 
     #[test]
@@ -285,7 +290,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ :with_underscore => "hello world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get("with_underscore").unwrap().is_bytes());
+        assert_string(result.get("with_underscore").unwrap(), "hello world");
     }
 
     #[test]
@@ -293,8 +298,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ "hello": "world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        let value = result.get("hello").unwrap();
-        assert_eq!(value, &Value::Bytes("world".into()));
+        assert_string(result.get("hello").unwrap(), "world");
     }
 
     #[test]
@@ -302,8 +306,7 @@ mod tests {
         let result = parse_ruby_hash("{ 'hello': 'world' }").unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        let value = result.get("hello").unwrap();
-        assert_eq!(value, &Value::Bytes("world".into()));
+        assert_string(result.get("hello").unwrap(), "world");
     }
 
     #[test]
@@ -311,8 +314,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ hello: "world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        let value = result.get("hello").unwrap();
-        assert_eq!(value, &Value::Bytes("world".into()));
+        assert_string(result.get("hello").unwrap(), "world");
     }
 
     #[test]
@@ -320,7 +322,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ "with-dash" => "foo" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get("with-dash").unwrap().is_bytes());
+        assert_string(result.get("with-dash").unwrap(), "foo");
     }
 
     #[test]
@@ -328,8 +330,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ "with'quote" => "and\"double\"quote" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        let value = result.get("with'quote").unwrap();
-        assert_eq!(value, &Value::Bytes("and\\\"double\\\"quote".into()));
+        assert_string(result.get("with'quote").unwrap(), "and\\\"double\\\"quote");
     }
 
     #[test]
@@ -338,7 +339,7 @@ mod tests {
             parse_ruby_hash(r#"{:hello=>"world",'number'=>42,"weird"=>'format\'here'}"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get("hello").unwrap().is_bytes());
+        assert_string(result.get("hello").unwrap(), "world");
         assert!(result.get("number").unwrap().is_float());
     }
 

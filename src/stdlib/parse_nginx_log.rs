@@ -6,8 +6,7 @@ use crate::value;
 use std::collections::BTreeMap;
 
 static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
-static DEFAULT_TIMESTAMP_FORMAT: Value =
-    Value::Bytes(Bytes::from_static(DEFAULT_TIMESTAMP_FORMAT_STR.as_bytes()));
+static DEFAULT_TIMESTAMP_FORMAT: Value = Value::from_static_str(DEFAULT_TIMESTAMP_FORMAT_STR);
 
 static FORMAT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -98,7 +97,7 @@ impl Function for ParseNginxLog {
         "parse_nginx_log"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses Nginx access and error log lines. Lines can be in [`combined`](https://nginx.org/en/docs/http/ngx_http_log_module.html), [`ingress_upstreaminfo`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/log-format/), [`main`](https://hg.nginx.org/pkg-oss/file/tip/debian/debian/nginx.conf) or [`error`](https://github.com/nginx/nginx/blob/branches/stable-1.18/src/core/ngx_log.c#L102) format."
     }
 

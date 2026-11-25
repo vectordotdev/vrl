@@ -25,7 +25,7 @@ impl Function for ToSyslogLevel {
         "to_syslog_level"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         r#"Converts the `value`, a Syslog [severity level](https://en.wikipedia.org/wiki/Syslog#Severity_level), into its corresponding keyword, i.e. 0 into `"emerg"`, 1 into `"alert"`, etc."#
     }
 

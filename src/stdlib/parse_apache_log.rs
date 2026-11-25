@@ -4,8 +4,7 @@ use crate::compiler::prelude::*;
 use crate::value;
 use std::collections::BTreeMap;
 
-static DEFAULT_TIMESTAMP_FORMAT: Value =
-    Value::Bytes(Bytes::from_static("%d/%b/%Y:%T %z".as_bytes()));
+static DEFAULT_TIMESTAMP_FORMAT: Value = Value::from_static_str("%d/%b/%Y:%T %z");
 
 const FORMAT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -68,7 +67,7 @@ impl Function for ParseApacheLog {
         "parse_apache_log"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Parses Apache access and error log lines. Lines can be in [`common`](https://httpd.apache.org/docs/current/logs.html#common),
             [`combined`](https://httpd.apache.org/docs/current/logs.html#combined), or the default [`error`](https://httpd.apache.org/docs/current/logs.html#errorlog) format.

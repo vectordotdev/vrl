@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 
-static DEFAULT_DECIMAL_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_DECIMAL_SEPARATOR: Value = Value::from_static_str(".");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required(
@@ -113,7 +113,7 @@ impl Function for FormatNumber {
         "format_number"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Formats the `value` into a string representation of the number."
     }
 

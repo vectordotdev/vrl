@@ -1,0 +1,47 @@
+{
+  "anchor": "pow",
+  "name": "pow",
+  "category": "Number",
+  "description": "Raises `base` to the power of `exponent`.",
+  "arguments": [
+    {
+      "name": "base",
+      "description": "The base.",
+      "required": true,
+      "type": [
+        "integer",
+        "float"
+      ]
+    },
+    {
+      "name": "exponent",
+      "description": "The exponent.",
+      "required": true,
+      "type": [
+        "integer",
+        "float"
+      ]
+    }
+  ],
+  "return": {
+    "types": [
+      "float"
+    ]
+  },
+  "internal_failure_reasons": [
+    "The result is not a finite number, for example a negative `base` with a fractional `exponent`, `0` with a negative `exponent`, or an overflow."
+  ],
+  "examples": [
+    {
+      "title": "Raise an integer to a power",
+      "source": "pow!(2, 10)",
+      "return": 1024.0
+    },
+    {
+      "title": "Convert dBm to milliwatts",
+      "source": "pow!(10, -3.0 / 10)",
+      "return": 0.5011872336272722
+    }
+  ],
+  "pure": true
+}

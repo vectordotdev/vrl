@@ -10,9 +10,7 @@ allow = [
   "ISC",
   "MIT",
   "MIT-0",
-  "OpenSSL",
   "Unicode-3.0",
-  "Unicode-DFS-2016",
   "Unlicense",
   "Zlib",
 ]
@@ -23,12 +21,13 @@ exceptions = [
   # MPL-2.0 are added case-by-case to make sure we are in compliance. To be in
   # compliance we cannot be modifying the source files.
   { allow = ["MPL-2.0"], name = "vrl", version = "*" },
+  # Mozilla CA certificate data used by rustls-platform-verifier; also allowed in Vector.
+  { allow = ["CDLA-Permissive-2.0"], name = "webpki-root-certs", version = "1" },
 ]
 
-[[licenses.clarify]]
-name = "ring"
-version = "*"
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [
-    { path = "LICENSE", hash = 0xbd0eed23 }
+[advisories]
+ignore = [
+  { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml is unmaintained; serde_yaml_ng migration is pending upstream (https://github.com/acatton/serde-yaml-ng/issues/5)" },
+  { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained with no patched version; it is part of VRL's public API (Value::Timestamp), so migrating to jiff/time needs a dedicated effort (https://github.com/chronotope/chrono/issues/1768)" },
+  { id = "RUSTSEC-2026-0555", reason = "chrono-tz is unmaintained with no patched version; replacement is tied to the chrono migration (https://github.com/chronotope/chrono/issues/1768)" },
 ]

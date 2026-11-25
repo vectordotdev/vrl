@@ -2,7 +2,7 @@ use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crc::Crc as CrcInstance;
 
-static DEFAULT_ALGORITHM: Value = Value::Bytes(Bytes::from_static("CRC_32_ISO_HDLC".as_bytes()));
+static DEFAULT_ALGORITHM: Value = Value::from_static_str("CRC_32_ISO_HDLC");
 
 const VALID_ALGORITHMS: &[&str] = &[
     "CRC_3_GSM",
@@ -936,7 +936,7 @@ impl Function for Crc {
         "crc"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {
             "Calculates a CRC of the `value`.The CRC `algorithm` used can be optionally specified.
 

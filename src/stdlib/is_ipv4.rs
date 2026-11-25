@@ -14,7 +14,7 @@ impl Function for IsIpv4 {
         "is_ipv4"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Check if the string is a valid IPv4 address or not.
 

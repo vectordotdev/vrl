@@ -9,18 +9,19 @@ fn split(value: &Value, limit: Value, pattern: Value) -> Resolved {
         x => x as usize,
     };
     match pattern {
-        Value::Regex(pattern) => Ok(pattern
-            .splitn(string.as_ref(), limit)
-            .collect::<Vec<_>>()
-            .into()),
-        Value::Bytes(bytes) => {
-            let pattern = String::from_utf8_lossy(&bytes);
-
+        pattern @ (Value::Bytes(_) | Value::String(_)) => {
+            let pattern = pattern
+                .to_str_lossy()
+                .expect("bytes and string have a text view");
             Ok(string
                 .splitn(limit, pattern.as_ref())
                 .collect::<Vec<_>>()
                 .into())
         }
+        Value::Regex(pattern) => Ok(pattern
+            .splitn(string.as_ref(), limit)
+            .collect::<Vec<_>>()
+            .into()),
         value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::regex() | Kind::bytes(),
@@ -37,7 +38,7 @@ impl Function for Split {
         "split"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Splits the `value` string using `pattern`."
     }
 

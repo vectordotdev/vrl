@@ -1,6 +1,40 @@
-use crate::path::ValuePath;
+use std::convert::TryFrom;
+
+use crate::path::{OwnedSegment, OwnedValuePath, ValuePath};
 
 use crate::value::Value;
+
+impl TryFrom<Value> for OwnedSegment {
+    type Error = String;
+
+    #[allow(clippy::cast_possible_truncation)] // TODO consider removal options
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Integer(index) => Ok(Self::index(index as isize)),
+            value => value
+                .to_str_lossy()
+                .map(|s| Self::field(&s))
+                .ok_or_else(|| {
+                    format!(
+                        "path segment must be either string or integer, not {}",
+                        value.kind()
+                    )
+                }),
+        }
+    }
+}
+
+impl TryFrom<Vec<Value>> for OwnedValuePath {
+    type Error = String;
+
+    fn try_from(segments: Vec<Value>) -> Result<Self, Self::Error> {
+        let mut path = Self::root();
+        for segment in segments {
+            path.push_segment(OwnedSegment::try_from(segment)?);
+        }
+        Ok(path)
+    }
+}
 
 impl Value {
     /// Insert the current value into a given path.
@@ -17,7 +51,7 @@ impl Value {
 
 #[cfg(test)]
 mod at_path_tests {
-    use std::collections::BTreeMap;
+    use crate::value::value::ObjectMap;
 
     use crate::path;
     use crate::path::parse_value_path;
@@ -29,10 +63,10 @@ mod at_path_tests {
         let path = parse_value_path(".foo.bar.baz").unwrap();
         let value = Value::Integer(12);
 
-        let bar_value = Value::Object(BTreeMap::from([("baz".into(), value.clone())]));
-        let foo_value = Value::Object(BTreeMap::from([("bar".into(), bar_value)]));
+        let bar_value = Value::Object(ObjectMap::from([("baz".into(), value.clone())]));
+        let foo_value = Value::Object(ObjectMap::from([("bar".into(), bar_value)]));
 
-        let object = Value::Object(BTreeMap::from([("foo".into(), foo_value)]));
+        let object = Value::Object(ObjectMap::from([("foo".into(), foo_value)]));
 
         assert_eq!(value.at_path(&path), object);
     }
@@ -62,12 +96,12 @@ mod at_path_tests {
         let value = Value::Object([("bar".into(), vec![12].into())].into()); //value!({ "bar": [12] });
 
         let baz_value = Value::Array(vec![Value::Null, value.clone()]);
-        let foo_value = Value::Object(BTreeMap::from([("baz".into(), baz_value)]));
+        let foo_value = Value::Object(ObjectMap::from([("baz".into(), baz_value)]));
 
         let object = Value::Array(vec![
             Value::Null,
             Value::Null,
-            Value::Object(BTreeMap::from([("foo".into(), foo_value)])),
+            Value::Object(ObjectMap::from([("foo".into(), foo_value)])),
         ]);
 
         assert_eq!(value.at_path(&path), object);

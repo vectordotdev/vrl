@@ -2,13 +2,22 @@ use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
 
-use crate::value::Value;
+use std::collections::BTreeMap;
+
+use crate::value::{KeyString, ObjectMap, Value};
+
+impl FromLua for ObjectMap {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        <BTreeMap<KeyString, Value>>::from_lua(value, lua).map(Self::from)
+    }
+}
 
 impl IntoLua for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match self {
             Self::Bytes(b) => lua.create_string(b.as_ref()).map(LuaValue::String),
+            Self::String(s) => lua.create_string(&*s).map(LuaValue::String),
             Self::Regex(regex) => lua
                 .create_string(regex.as_bytes_slice())
                 .map(LuaValue::String),
@@ -26,7 +35,7 @@ impl IntoLua for Value {
 impl FromLua for Value {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         match value {
-            LuaValue::String(s) => Ok(Self::Bytes(s.as_bytes().to_vec().into())),
+            LuaValue::String(s) => Ok(Self::from_utf8_or_bytes(s.as_bytes().to_vec().into())),
             LuaValue::Integer(i) => Ok(Self::Integer(i)),
             LuaValue::Number(f) => {
                 let f = NotNan::new(f).map_err(|_| mlua::Error::FromLuaConversionError {
@@ -43,7 +52,7 @@ impl FromLua for Value {
                 } else if table_is_timestamp(&t)? {
                     table_to_timestamp(t).map(Self::Timestamp)
                 } else {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Object)
+                    ObjectMap::from_lua(LuaValue::Table(t), lua).map(Self::Object)
                 }
             }
             other => Err(mlua::Error::FromLuaConversionError {
@@ -93,6 +102,33 @@ pub fn table_is_timestamp(t: &LuaTable) -> LuaResult<bool> {
     Ok(true)
 }
 
+/// An integer read from Lua that truncates fractional numbers toward zero.
+///
+/// mlua 0.12 rejects non-integral numbers when converting to Rust integer types under Lua 5.4,
+/// while mlua 0.11 truncated them. Scripts commonly compute timestamp fields with float
+/// arithmetic (for example `nanosec = 1e9 / 3`), so this wrapper keeps the previous truncating
+/// behavior. Out-of-range and non-numeric values still fail the conversion.
+struct LuaInt<T>(T);
+
+impl<T: FromLua> FromLua for LuaInt<T> {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        let value = match value {
+            LuaValue::Number(n) => LuaValue::Number(n.trunc()),
+            LuaValue::String(_) => {
+                if let Some(i) = lua.coerce_integer(value.clone())? {
+                    LuaValue::Integer(i)
+                } else if let Some(n) = lua.coerce_number(value.clone())? {
+                    LuaValue::Number(n.trunc())
+                } else {
+                    value
+                }
+            }
+            other => other,
+        };
+        T::from_lua(value, lua).map(Self)
+    }
+}
+
 /// Convert a `LuaTable` to a `DateTime<Utc>`.
 ///
 /// # Errors
@@ -100,13 +136,15 @@ pub fn table_is_timestamp(t: &LuaTable) -> LuaResult<bool> {
 /// This function will fail if the table is malformed.
 #[allow(clippy::needless_pass_by_value)] // constrained by mlua types
 pub fn table_to_timestamp(t: LuaTable) -> LuaResult<DateTime<Utc>> {
-    let year = t.raw_get("year")?;
-    let month = t.raw_get("month")?;
-    let day = t.raw_get("day")?;
-    let hour = t.raw_get("hour")?;
-    let min = t.raw_get("min")?;
-    let sec = t.raw_get("sec")?;
-    let nano = t.raw_get::<Option<u32>>("nanosec")?.unwrap_or(0);
+    let LuaInt(year) = t.raw_get("year")?;
+    let LuaInt(month) = t.raw_get("month")?;
+    let LuaInt(day) = t.raw_get("day")?;
+    let LuaInt(hour) = t.raw_get("hour")?;
+    let LuaInt(min) = t.raw_get("min")?;
+    let LuaInt(sec) = t.raw_get("sec")?;
+    let nano = t
+        .raw_get::<Option<LuaInt<u32>>>("nanosec")?
+        .map_or(0, |LuaInt(nano)| nano);
 
     let base_dt = Utc
         .with_ymd_and_hms(year, month, day, hour, min, sec)
@@ -156,8 +194,8 @@ mod test {
                 ),
             ),
             (
-                "{1, '2', 0.57721566}",
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                "{1, '2', 0.56721566}",
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
             ),
             (
                 "os.date('!*t', 1584297428)",
@@ -192,6 +230,36 @@ mod test {
             let value: Value = lua.load(expression).eval().unwrap();
             assert_eq!(value, expected, "expression: {expression:?}");
         }
+    }
+
+    #[test]
+    fn from_lua_timestamp_truncates_fractional_fields() {
+        let expected = Value::Timestamp(
+            Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
+                .single()
+                .expect("invalid or ambiguous date and time")
+                .with_nanosecond(333_333_333)
+                .expect("invalid nanosecond"),
+        );
+
+        let lua = Lua::new();
+        for expression in [
+            "{year=2020, month=3, day=15, hour=18, min=37, sec=8, nanosec=1e9 / 3}",
+            "{year=2020, month=3, day=15, hour=18, min=37, sec=8.9, nanosec='333333333.9'}",
+            "(function() local t = os.date('!*t', 1584297428); t.nanosec = 1e9 / 3; return t end)()",
+        ] {
+            let value: Value = lua.load(expression).eval().unwrap();
+            assert_eq!(value, expected, "expression: {expression:?}");
+        }
+    }
+
+    #[test]
+    fn from_lua_timestamp_rejects_out_of_range_fields() {
+        let lua = Lua::new();
+        let result: LuaResult<Value> = lua
+            .load("{year=2020, month=3, day=15, hour=18, min=37, sec=8, nanosec=-1.5}")
+            .eval();
+        assert!(result.is_err());
     }
 
     #[test]
@@ -255,12 +323,12 @@ mod test {
                 ",
             ),
             (
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
                 "
                 function (value)
                     return value[1] == 1 and
                         value[2] == '2' and
-                        value[3] == 0.57721566
+                        value[3] == 0.56721566
                 end
                 ",
             ),

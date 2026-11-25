@@ -18,6 +18,9 @@
       "required": true,
       "type": [
         "array"
+      ],
+      "element_type": [
+        "string"
       ]
     },
     {
@@ -35,6 +38,9 @@
       "required": false,
       "type": [
         "array"
+      ],
+      "element_type": [
+        "string"
       ],
       "default": "[]"
     }

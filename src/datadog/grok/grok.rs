@@ -154,9 +154,8 @@ impl Grok {
         let mut iteration_left = MAX_RECURSION;
         let mut continue_iteration = true;
 
-        let grok_regex = match Regex::new(GROK_PATTERN) {
-            Ok(r) => r,
-            Err(_) => return Err(Error::RegexCompilationFailed(GROK_PATTERN.into())),
+        let Ok(grok_regex) = Regex::new(GROK_PATTERN) else {
+            return Err(Error::RegexCompilationFailed(GROK_PATTERN.into()));
         };
 
         while continue_iteration {
@@ -168,13 +167,10 @@ impl Grok {
 
             if let Some(m) = grok_regex.captures(&named_regex.clone()) {
                 continue_iteration = true;
-                let raw_pattern = match m.at(PATTERN_INDEX) {
-                    Some(p) => p,
-                    None => {
-                        return Err(Error::GenericCompilationFailure(
-                            "Could not find pattern in matches".into(),
-                        ));
-                    }
+                let Some(raw_pattern) = m.at(PATTERN_INDEX) else {
+                    return Err(Error::GenericCompilationFailure(
+                        "Could not find pattern in matches".into(),
+                    ));
                 };
 
                 let mut name = match m.at(NAME_INDEX) {
@@ -197,9 +193,8 @@ impl Grok {
                 for _ in 0..named_regex.matches(&format!("%{{{name}}}")).count() {
                     // Check if we have a definition for the raw pattern key and fail quickly
                     // if not.
-                    let pattern_definition = match self.definitions.get(raw_pattern) {
-                        Some(d) => d,
-                        None => return Err(Error::DefinitionNotFound(String::from(raw_pattern))),
+                    let Some(pattern_definition) = self.definitions.get(raw_pattern) else {
+                        return Err(Error::DefinitionNotFound(String::from(raw_pattern)));
                     };
 
                     // If no alias is specified and all but with alias are ignored,

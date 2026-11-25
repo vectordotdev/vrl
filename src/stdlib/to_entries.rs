@@ -47,7 +47,7 @@ impl Function for ToEntries {
         "to_entries"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Converts JSON objects or arrays into array of objects."
     }
 
@@ -67,6 +67,7 @@ impl Function for ToEntries {
         &[Parameter {
             keyword: "value",
             kind: kind::OBJECT | kind::ARRAY,
+            element_kind: kind::ANY,
             required: true,
             description: "The object or array to manipulate.",
             default: None,
