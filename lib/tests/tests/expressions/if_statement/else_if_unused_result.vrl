@@ -1,0 +1,22 @@
+# result: ["second", "else"]
+
+# An if/else-if chain whose result is unused runs exactly the first matching arm.
+if false {
+  .a = "first"
+} else if true {
+  .a = "second"
+} else if true {
+  .a = "third"
+} else {
+  .a = "else"
+}
+
+if false {
+  .b = "first"
+} else if false {
+  .b = "second"
+} else {
+  .b = "else"
+}
+
+[.a, .b]
