@@ -1058,6 +1058,18 @@ mod test {
             tdef: type_def(),
         }
 
+        wildcard_question_mark_facet {
+            args: func_args![value: value!({"a": "vec?or"}), query: "@a:vec?or"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
+        wildcard_question_mark_is_literal_facet {
+            args: func_args![value: value!({"a": "vector"}), query: "@a:vec?or"],
+            want: Ok(false),
+            tdef: type_def(),
+        }
+
         range_message_unbounded {
             args: func_args![value: value!({"message": "1"}), query: "[* TO *]"],
             want: Ok(true),

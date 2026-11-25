@@ -90,8 +90,8 @@ mod test {
     proptest::proptest! {
         #[test]
         fn wildcard_matcher_agrees_with_wildcard_regex(
-            pattern in "[ab*\n]{0,6}",
-            value in "[ab\n]{0,8}",
+            pattern in "[ab*?\n]{0,6}",
+            value in "[ab?\n]{0,8}",
         ) {
             proptest::prop_assert_eq!(
                 WildcardMatcher::new(&pattern).is_match(&value),
