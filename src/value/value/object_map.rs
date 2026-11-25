@@ -485,7 +485,10 @@ impl Extend<(KeyString, Value)> for ObjectMap {
 impl<const N: usize> From<[(KeyString, Value); N]> for ObjectMap {
     #[inline]
     fn from(arr: [(KeyString, Value); N]) -> Self {
-        arr.into_iter().collect()
+        // Builds the map directly from the array, without the temporary `Vec` that `collect` uses.
+        Self {
+            map: BTreeMap::from(arr),
+        }
     }
 }
 
@@ -555,6 +558,22 @@ mod tests {
             ("d".into(), Value::from(3)),
             ("e.f".into(), Value::from(4)),
         ])
+    }
+
+    #[test]
+    fn from_array_matches_collect_with_duplicate_keys() {
+        let entries = || {
+            [
+                ("b".into(), Value::from(1)),
+                ("a".into(), Value::from(2)),
+                ("b".into(), Value::from(3)),
+            ]
+        };
+
+        let map = ObjectMap::from(entries());
+
+        assert_eq!(map, entries().into_iter().collect::<ObjectMap>());
+        assert_eq!(map.get("b"), Some(&Value::from(3)));
     }
 
     #[test]
