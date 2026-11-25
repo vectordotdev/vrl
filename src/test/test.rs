@@ -1,4 +1,7 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{MAIN_SEPARATOR, Path},
+};
 
 use crate::compiler::function::Example;
 use crate::path::OwnedTargetPath;
@@ -205,13 +208,13 @@ fn test_category(path: &Path) -> String {
 
     stripped_path
         .clone()
-        .rsplit_once('/')
+        .rsplit_once(MAIN_SEPARATOR)
         .map_or(stripped_path, |x| x.0.to_owned())
 }
 
 fn test_name(path: &Path) -> String {
     path.to_string_lossy()
-        .rsplit_once('/')
+        .rsplit_once(MAIN_SEPARATOR)
         .unwrap()
         .1
         .trim_end_matches(".vrl")
