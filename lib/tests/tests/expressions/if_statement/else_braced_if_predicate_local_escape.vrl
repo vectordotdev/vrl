@@ -1,0 +1,23 @@
+# result:
+#
+# error[E701]: call to undefined variable
+#    ┌─ :10:1
+#    │
+# 10 │ x
+#    │ ^
+#    │ │
+#    │ undefined variable
+#    │ did you mean "null"?
+#    │
+#    = see language documentation at https://vrl.dev
+#    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+# Sole-stmt else { if } peels to the same multi-arm shape as else if; lock peel + non-escape together.
+if false {
+  null
+} else {
+  if (x = 1; true) {
+    null
+  }
+}
+x

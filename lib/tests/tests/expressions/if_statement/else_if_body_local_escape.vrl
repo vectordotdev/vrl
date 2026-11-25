@@ -1,0 +1,22 @@
+# result:
+#
+# error[E701]: call to undefined variable
+#   ┌─ :9:1
+#   │
+# 9 │ x
+#   │ ^
+#   │ │
+#   │ undefined variable
+#   │ did you mean "null"?
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+# Else-if body-only local must not escape (merged arm state must not leak body bindings after flatten).
+if false {
+  null
+} else if (true) {
+  x = 1
+  null
+}
+x

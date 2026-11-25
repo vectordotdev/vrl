@@ -1,0 +1,16 @@
+# result: "2021-03-26T16:00:00+00:00 2021-03-26T16:00:00+00:00"
+
+# Local and external state from each arm merges right to left, as nested `else { if }` did.
+r = null
+if false {
+  r = append([], array!(parse_json!("[]")))
+  .r = r
+} else if false {
+  r = [1]
+  .r = r
+} else {
+  r = values({"x": t'2021-03-26T16:00:00Z'})
+  .r = r
+}
+
+format_timestamp!(r[0], format: "%+") + " " + format_timestamp!(.r[0], format: "%+")
