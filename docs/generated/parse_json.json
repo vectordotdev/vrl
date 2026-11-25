@@ -28,6 +28,23 @@
         "boolean"
       ],
       "default": "true"
+    },
+    {
+      "name": "extract_embedded",
+      "description": "Whether to extract JSON objects and arrays embedded in surrounding text, such as a log\npreamble. Returns an array containing every document found, in order, and ignores the\nsurrounding text. Returns an error if no document is found.",
+      "required": false,
+      "type": [
+        "boolean"
+      ],
+      "default": "false"
+    },
+    {
+      "name": "max_documents",
+      "description": "Maximum number of documents to extract. Only applies when `extract_embedded` is true.\nThe value must be greater than 0.",
+      "required": false,
+      "type": [
+        "integer"
+      ]
     }
   ],
   "return": {
@@ -91,6 +108,27 @@
       "return": {
         "first_level": "{\"second_level\":\"finish\"}"
       }
+    },
+    {
+      "title": "Parse embedded JSON",
+      "source": "parse_json!(s'INFO controller.go:12 {\"a\": 1} {...} {\"b\": 2}', extract_embedded: true)",
+      "return": [
+        {
+          "a": 1
+        },
+        {
+          "b": 2
+        }
+      ]
+    },
+    {
+      "title": "Parse embedded JSON with max_documents",
+      "source": "parse_json!(s'INFO {\"a\": 1} {\"b\": 2}', extract_embedded: true, max_documents: 1)",
+      "return": [
+        {
+          "a": 1
+        }
+      ]
     }
   ],
   "notices": [
