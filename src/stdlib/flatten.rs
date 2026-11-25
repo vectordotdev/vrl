@@ -1,10 +1,10 @@
 use std::collections::HashSet;
-use std::collections::btree_map;
 
 use crate::compiler::expression::Expr;
 use crate::compiler::prelude::*;
+use crate::value::ObjectMapIter;
 
-static DEFAULT_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_SEPARATOR: Value = Value::from_static_str(".");
 static DEFAULT_EXCEPT: Value = Value::Array(vec![]);
 
 const PARAMETERS: &[Parameter] = &[
@@ -55,7 +55,7 @@ impl Function for Flatten {
         "flatten"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Flattens the `value` into a single-level representation."
     }
 
@@ -187,7 +187,7 @@ impl FunctionExpression for FlattenFn {
 
 /// An iterator to walk over maps allowing us to flatten nested maps to a single level.
 struct MapFlatten<'a> {
-    values: btree_map::Iter<'a, KeyString, Value>,
+    values: ObjectMapIter<'a>,
     separator: &'a str,
     inner: Option<Box<MapFlatten<'a>>>,
     parent: Option<KeyString>,
@@ -195,11 +195,7 @@ struct MapFlatten<'a> {
 }
 
 impl<'a> MapFlatten<'a> {
-    fn new(
-        values: btree_map::Iter<'a, KeyString, Value>,
-        separator: &'a str,
-        except: &'a HashSet<KeyString>,
-    ) -> Self {
+    fn new(values: ObjectMapIter<'a>, separator: &'a str, except: &'a HashSet<KeyString>) -> Self {
         Self {
             values,
             separator,
@@ -211,7 +207,7 @@ impl<'a> MapFlatten<'a> {
 
     fn new_from_parent(
         parent: KeyString,
-        values: btree_map::Iter<'a, KeyString, Value>,
+        values: ObjectMapIter<'a>,
         separator: &'a str,
         except: &'a HashSet<KeyString>,
     ) -> Self {
@@ -227,7 +223,7 @@ impl<'a> MapFlatten<'a> {
     /// Returns the key with the parent prepended.
     fn new_key(&self, key: &str) -> KeyString {
         match self.parent {
-            None => key.to_string().into(),
+            None => key.into(),
             Some(ref parent) => format!("{parent}{}{key}", self.separator).into(),
         }
     }

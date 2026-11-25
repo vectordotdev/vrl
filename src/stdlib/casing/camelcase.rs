@@ -11,7 +11,7 @@ impl Function for Camelcase {
         "camelcase"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Takes the `value` string, and turns it into camelCase. Optionally, you can pass in the existing case of the function, or else an attempt is made to determine the case automatically."
     }
 
@@ -81,7 +81,7 @@ impl Function for Camelcase {
 #[derive(Debug, Clone)]
 struct CamelcaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
 }
 
 impl FunctionExpression for CamelcaseFn {

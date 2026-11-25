@@ -1,0 +1,40 @@
+# result: [false, "fallback", "fallback", true, true, "a"]
+
+substrings = ["x"]
+contains_all_result = contains_all({ substrings = [1]; "x" }, substrings) ?? false
+
+fields_ordering = ["a"]
+encode_key_value_result = encode_key_value(
+    { fields_ordering = [1]; {"a": 1} },
+    fields_ordering,
+) ?? "fallback"
+
+reordered_fields_ordering = ["a"]
+reordered_encode_key_value_result = encode_key_value(
+    fields_ordering: reordered_fields_ordering,
+    value: { reordered_fields_ordering = [1]; {} },
+) ?? "fallback"
+
+initially_invalid_substrings = [1]
+initially_invalid_result = contains_all(
+    { initially_invalid_substrings = ["x"]; "x" },
+    initially_invalid_substrings,
+)
+
+reordered_initially_invalid_substrings = [1]
+reordered_initially_invalid_result = contains_all(
+    substrings: reordered_initially_invalid_substrings,
+    value: { reordered_initially_invalid_substrings = ["x"]; "x" },
+)
+
+join_fields = ["a"]
+join_result = join(value: join_fields, separator: { join_fields = [1]; "," })
+
+[
+    contains_all_result,
+    encode_key_value_result,
+    reordered_encode_key_value_result,
+    initially_invalid_result,
+    reordered_initially_invalid_result,
+    join_result,
+]

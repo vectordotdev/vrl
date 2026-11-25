@@ -1,13 +1,24 @@
+#[path = "runtime/variable_reads.rs"]
+mod variable_reads;
+
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
 use crate::value::Value;
-use std::{env, path::PathBuf, sync::LazyLock};
+use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
 use vrl::{
     bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
 };
+
+mod runtime;
+
+fn hash_message_args() -> HashMap<&'static str, expression::Expr> {
+    let mut args = func_args![];
+    args.insert("value", query!(".message"));
+    args
+}
 
 criterion_group!(
     name = benches;
@@ -49,6 +60,7 @@ criterion_group!(
               ends_with,
               // TODO: Cannot pass a Path to bench_function
               //exists
+              runtime::external_field_reads,
               find,
               flatten,
               floor,
@@ -182,6 +194,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
+              variable_reads::variable_reads,
               validate_json_schema,
               zip,
 );
@@ -655,7 +668,7 @@ bench_function! {
 
     literal {
         args: func_args![
-            value: 11222333444.56789,
+            value: 11_222_333_444.567_89,
             scale: 3,
             decimal_separator: ",",
             grouping_separator: "."
@@ -761,7 +774,7 @@ bench_function! {
 
     valid {
         args: func_args![value: "1.2.3.4"],
-        want: Ok(value!(16909060)),
+        want: Ok(value!(16_909_060)),
     }
 }
 
@@ -788,7 +801,7 @@ bench_function! {
     ip_ntoa => vrl::stdlib::IpNtoa;
 
     valid {
-        args: func_args![value: 16909060],
+        args: func_args![value: 16_909_060],
         want: Ok(value!("1.2.3.4")),
     }
 }
@@ -1328,12 +1341,25 @@ bench_function! {
     }
 }
 
-bench_function! {
+bench_query_function! {
     md5  => vrl::stdlib::Md5;
 
     literal {
-        args: func_args![value: "foo"],
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
         want: Ok("acbd18db4cc2f85cedef654fccc4a4d8"),
+    }
+
+    medium_256b {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
+        want: Ok("81109eec5aa1a284fb5327b10e9c16b9"),
+    }
+
+    large_4kb {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
+        want: Ok("21a199c53f422a380e20b162fb6ebe9c"),
     }
 }
 
@@ -1347,6 +1373,77 @@ bench_function! {
         ],
         want: Ok(value!(1))
     }
+}
+
+fn bench_merge_flat_map(start: usize, end: usize, val_prefix: &str) -> Value {
+    let map = (start..end)
+        .map(|i| {
+            (
+                format!("key_{i:02}").into(),
+                Value::from(format!("{val_prefix}_{i:02}")),
+            )
+        })
+        .collect::<ObjectMap>();
+    Value::Object(map)
+}
+
+fn bench_merge_flat_map_combined(
+    base_start: usize,
+    base_end: usize,
+    base_prefix: &str,
+    overlay_start: usize,
+    overlay_end: usize,
+    overlay_prefix: &str,
+) -> Value {
+    let mut map = (base_start..base_end)
+        .map(|i| {
+            (
+                format!("key_{i:02}").into(),
+                Value::from(format!("{base_prefix}_{i:02}")),
+            )
+        })
+        .collect::<ObjectMap>();
+    for i in overlay_start..overlay_end {
+        map.insert(
+            format!("key_{i:02}").into(),
+            Value::from(format!("{overlay_prefix}_{i:02}")),
+        );
+    }
+    Value::Object(map)
+}
+
+fn bench_merge_nested_map(count: usize, subkey: &str, val_prefix: &str) -> Value {
+    let map = (0..count)
+        .map(|i| {
+            let inner = [
+                (subkey.into(), Value::from(format!("{val_prefix}_{i:02}"))),
+                (
+                    "shared".into(),
+                    Value::from(format!("{val_prefix}_shared_{i:02}")),
+                ),
+            ]
+            .into_iter()
+            .collect::<ObjectMap>();
+            (format!("parent_{i:02}").into(), Value::Object(inner))
+        })
+        .collect::<ObjectMap>();
+    Value::Object(map)
+}
+
+fn bench_merge_nested_merged(count: usize) -> Value {
+    let map = (0..count)
+        .map(|i| {
+            let inner = [
+                ("key_a".into(), Value::from(format!("to_{i:02}"))),
+                ("key_b".into(), Value::from(format!("from_{i:02}"))),
+                ("shared".into(), Value::from(format!("from_shared_{i:02}"))),
+            ]
+            .into_iter()
+            .collect::<ObjectMap>();
+            (format!("parent_{i:02}").into(), Value::Object(inner))
+        })
+        .collect::<ObjectMap>();
+    Value::Object(map)
 }
 
 bench_function! {
@@ -1401,6 +1498,54 @@ bench_function! {
                 "grandchild2": "val2",
             },
         }))
+    }
+
+    empty_from {
+        args: func_args![
+            to: value!({
+                "key1": "val1",
+                "key2": "val2",
+            }),
+            from: value!({}),
+        ],
+        want: Ok(value!({
+            "key1": "val1",
+            "key2": "val2",
+        }))
+    }
+
+    asymmetric_small_into_large {
+        args: func_args![
+            to: bench_merge_flat_map(0, 50, "to"),
+            from: bench_merge_flat_map(49, 51, "from"),
+        ],
+        want: Ok(bench_merge_flat_map_combined(0, 50, "to", 49, 51, "from")),
+    }
+
+    asymmetric_large_into_small {
+        args: func_args![
+            to: bench_merge_flat_map(0, 2, "to"),
+            from: bench_merge_flat_map(1, 51, "from"),
+        ],
+        want: Ok(bench_merge_flat_map_combined(0, 2, "to", 1, 51, "from")),
+    }
+
+    large_shallow {
+        args: func_args![
+            to: bench_merge_flat_map(0, 50, "to"),
+            from: bench_merge_flat_map(25, 75, "from"),
+            deep: false,
+        ],
+        want: Ok(bench_merge_flat_map_combined(0, 50, "to", 25, 75, "from")),
+    }
+
+    large_deep {
+        args: func_args![
+            to: bench_merge_nested_map(20, "key_a", "to"),
+            from: bench_merge_nested_map(20, "key_b", "from"),
+            deep: true,
+        ],
+        want: Ok(bench_merge_nested_merged(20)),
     }
 }
 
@@ -1508,11 +1653,11 @@ bench_function! {
             "subscription_filters":  ["Destination"],
             "log_events": [{
                 "id":  "35683658089614582423604394983260738922885519999578275840",
-                "timestamp":  (Utc.timestamp_opt(1600110569, 39000000).single().expect("invalid timestamp")),
+                "timestamp":  (Utc.timestamp_opt(1_600_110_569, 39_000_000).single().expect("invalid timestamp")),
                 "message":  r#"{"bytes":26780,"datetime":"14/Sep/2020:11:45:41 -0400","host":"157.130.216.193","method":"PUT","protocol":"HTTP/1.0","referer":"https://www.principalcross-platform.io/markets/ubiquitous","request":"/expedite/convergence","source_type":"stdin","status":301,"user-identifier":"-"}"#,
             }, {
                 "id":  "35683658089659183914001456229543810359430816722590236673",
-                "timestamp":  (Utc.timestamp_opt(1600110569, 41000000).single().expect("invalid timestamp")),
+                "timestamp":  (Utc.timestamp_opt(1_600_110_569, 41_000_000).single().expect("invalid timestamp")),
                 "message":  r#"{"bytes":17707,"datetime":"14/Sep/2020:11:45:41 -0400","host":"109.81.244.252","method":"GET","protocol":"HTTP/2.0","referer":"http://www.investormission-critical.io/24/7/vortals","request":"/scale/functionalities/optimize","source_type":"stdin","status":502,"user-identifier":"feeney1708"}"#,
             }]
         }))
@@ -1528,7 +1673,7 @@ bench_function! {
             format: "version interface_id account_id vpc_id subnet_id instance_id srcaddr dstaddr srcport dstport protocol tcp_flags type pkt_srcaddr pkt_dstaddr action log_status",
         ],
         want: Ok(value!({
-            "account_id": 123456789010i64,
+            "account_id": 123_456_789_010_i64,
             "action": "ACCEPT",
             "dstaddr": "10.40.2.236",
             "dstport": 80,
@@ -1798,7 +1943,7 @@ bench_function! {
     parse_influxdb => vrl::stdlib::ParseInfluxDB;
 
     simple {
-        args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000") ],
+        args: func_args![ value: "cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000".to_string() ],
         want: Ok(Value::from(vec![
             Value::from(btreemap! {
                 "name" => "cpu_usage_system",
@@ -2076,7 +2221,7 @@ const PARSE_REGEX_LARGE_INPUT: &str = concat!(
 );
 const PARSE_REGEX_SINGLE_MATCH_PATTERN: &str = "(?P<number>.*?) group";
 const PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN: &str =
-    r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#;
+    r"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]";
 const PARSE_REGEX_LARGE_INPUT_PATTERN: &str = r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#;
 
 static LARGE_INPUT_SMALL_CAPTURES_RESULT: LazyLock<Value> = LazyLock::new(|| {
@@ -2206,7 +2351,9 @@ fn parse_regex_concurrent(c: &mut Criterion) {
 
     group.bench_function(format!("{REGEX_CONCURRENT_THREADS}_threads"), |b| {
         b.iter_custom(|iters| {
-            let per_thread = (iters as usize).max(1);
+            let per_thread = usize::try_from(iters)
+                .expect("benchmark iteration count fits usize")
+                .max(1);
             let start = Instant::now();
             std::thread::scope(|s| {
                 for expr in &expressions {
@@ -2314,7 +2461,9 @@ fn parse_regex_all_concurrent(c: &mut Criterion) {
 
     group.bench_function(format!("{REGEX_CONCURRENT_THREADS}_threads"), |b| {
         b.iter_custom(|iters| {
-            let per_thread = (iters as usize).max(1);
+            let per_thread = usize::try_from(iters)
+                .expect("benchmark iteration count fits usize")
+                .max(1);
             let start = Instant::now();
             std::thread::scope(|s| {
                 for expr in &expressions {
@@ -2747,30 +2896,69 @@ bench_function! {
     }
 }
 
-bench_function! {
+bench_query_function! {
     sha1 => vrl::stdlib::Sha1;
 
     literal {
-        args: func_args![value: "foo"],
-        want: Ok("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33")
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
+        want: Ok("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
+    }
+
+    medium_256b {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
+        want: Ok("9c78512ad150c8b5d8918395ad0e5169397d2b62"),
+    }
+
+    large_4kb {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
+        want: Ok("8c51fb6a0b587ec95ca74acfa43df7539b486297"),
     }
 }
 
-bench_function! {
+bench_query_function! {
     sha2 => vrl::stdlib::Sha2;
 
     default {
-        args: func_args![value: "foo"],
-        want: Ok("d58042e6aa5a335e03ad576c6a9e43b41591bfd2077f72dec9df7930e492055d")
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
+        want: Ok("d58042e6aa5a335e03ad576c6a9e43b41591bfd2077f72dec9df7930e492055d"),
+    }
+
+    medium_256b {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
+        want: Ok("d43f85191c3058fd3b2383077f8e1aa800aae7fdf6eb829440fa45f189562c07"),
+    }
+
+    large_4kb {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
+        want: Ok("f02b1d57f4f111bc134a3b65e3b3fe6365278b7720f6735a7bd99594cb2ab07f"),
     }
 }
 
-bench_function! {
+bench_query_function! {
     sha3 => vrl::stdlib::Sha3;
 
     default {
-        args: func_args![value: "foo"],
-        want: Ok("4bca2b137edc580fe50a88983ef860ebaca36c857b1f492839d6d7392452a63c82cbebc68e3b70a2a1480b4bb5d437a7cba6ecf9d89f9ff3ccd14cd6146ea7e7")
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
+        want: Ok("4bca2b137edc580fe50a88983ef860ebaca36c857b1f492839d6d7392452a63c82cbebc68e3b70a2a1480b4bb5d437a7cba6ecf9d89f9ff3ccd14cd6146ea7e7"),
+    }
+
+    medium_256b {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
+        want: Ok("0adb817bb9e117d66161ff11e1f578695fed2a02a418ab0af082c9042c85c30fb1b555e54dad918465058a878fa897e744c059a298bae292af3ac1176ad4c819"),
+    }
+
+    large_4kb {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
+        want: Ok("ae813750efcfea6d87ee97e6ba6e5f686f96d8ac6d9c22627e5ea0449c3ef031e91455b545aa5065ad3092171c1a9fb604c529c3ab0159ff4e3245749ae0ee7f"),
     }
 }
 
@@ -3133,7 +3321,7 @@ bench_function! {
 
     default {
         args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
-        want: Ok(1609459200),
+        want: Ok(1_609_459_200),
     }
 }
 

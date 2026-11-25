@@ -6,6 +6,7 @@ pub use abort::Abort;
 pub use array::Array;
 pub use assignment::Assignment;
 pub use block::Block;
+pub use break_::Break;
 pub use container::{Container, Variant};
 #[allow(clippy::module_name_repetitions)]
 pub use function::FunctionExpression;
@@ -35,6 +36,7 @@ use super::{Context, TypeDef};
 mod abort;
 mod array;
 mod block;
+pub(crate) mod break_;
 mod function_argument;
 mod group;
 mod if_statement;
@@ -63,6 +65,13 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     ///
     /// An expression is allowed to fail, which aborts the running program.
     fn resolve(&self, ctx: &mut Context) -> Resolved;
+
+    /// Resolve an expression whose resulting value is not used.
+    ///
+    /// Expressions can override this to avoid producing (e.g. cloning) a result.
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.resolve(ctx).map(|_| ())
+    }
 
     /// Resolve an expression to a value without any context, if possible.
     /// This attempts to resolve expressions using only compile-time information.
@@ -122,13 +131,14 @@ pub enum Expr {
     Unary(Unary),
     Abort(Abort),
     Return(Return),
+    Break(Break),
 }
 
 impl Expr {
     pub fn as_str(&self) -> &str {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
         use container::Variant::{Array, Block, Group, Object};
 
@@ -150,6 +160,7 @@ impl Expr {
             Unary(..) => "unary operation",
             Abort(..) => "abort operation",
             Return(..) => "return",
+            Break(..) => "break",
         }
     }
 
@@ -230,9 +241,11 @@ impl Expr {
 impl Expression for Expr {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
+
+        ctx.checkpoint()?;
 
         match self {
             Literal(v) => v.resolve(ctx),
@@ -247,13 +260,39 @@ impl Expression for Expr {
             Unary(v) => v.resolve(ctx),
             Abort(v) => v.resolve(ctx),
             Return(v) => v.resolve(ctx),
+            Break(v) => v.resolve(ctx),
+        }
+    }
+
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        use Expr::{
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
+        };
+
+        ctx.checkpoint()?;
+
+        match self {
+            Literal(v) => v.resolve_unused(ctx),
+            Container(v) => v.resolve_unused(ctx),
+            IfStatement(v) => v.resolve_unused(ctx),
+            Op(v) => v.resolve_unused(ctx),
+            Assignment(v) => v.resolve_unused(ctx),
+            Query(v) => v.resolve_unused(ctx),
+            FunctionCall(v) => v.resolve_unused(ctx),
+            Variable(v) => v.resolve_unused(ctx),
+            Noop(v) => v.resolve_unused(ctx),
+            Unary(v) => v.resolve_unused(ctx),
+            Abort(v) => v.resolve_unused(ctx),
+            Return(v) => v.resolve_unused(ctx),
+            Break(v) => v.resolve_unused(ctx),
         }
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
 
         match self {
@@ -269,13 +308,14 @@ impl Expression for Expr {
             Unary(v) => Expression::resolve_constant(v, state),
             Abort(v) => Expression::resolve_constant(v, state),
             Return(v) => Expression::resolve_constant(v, state),
+            Break(v) => Expression::resolve_constant(v, state),
         }
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
 
         match self {
@@ -291,6 +331,7 @@ impl Expression for Expr {
             Unary(v) => v.type_info(state),
             Abort(v) => v.type_info(state),
             Return(v) => v.type_info(state),
+            Break(v) => v.type_info(state),
         }
     }
 }
@@ -298,8 +339,8 @@ impl Expression for Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
 
         match self {
@@ -315,6 +356,7 @@ impl fmt::Display for Expr {
             Unary(v) => v.fmt(f),
             Abort(v) => v.fmt(f),
             Return(v) => v.fmt(f),
+            Break(v) => v.fmt(f),
         }
     }
 }
@@ -393,16 +435,23 @@ impl From<Return> for Expr {
     }
 }
 
+impl From<Break> for Expr {
+    fn from(r#break: Break) -> Self {
+        Expr::Break(r#break)
+    }
+}
+
 impl From<Value> for Expr {
     fn from(value: Value) -> Self {
         use std::collections::BTreeMap;
 
         use crate::value::Value::{
-            Array, Boolean, Bytes, Float, Integer, Null, Object, Regex, Timestamp,
+            Array, Boolean, Bytes, Float, Integer, Null, Object, Regex, String, Timestamp,
         };
 
         match value {
-            Bytes(v) => Literal::from(v).into(),
+            Bytes(v) => Literal::Bytes(v).into(),
+            String(v) => Literal::String(v).into(),
             Integer(v) => Literal::from(v).into(),
             Float(v) => Literal::from(v).into(),
             Boolean(v) => Literal::from(v).into(),

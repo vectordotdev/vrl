@@ -9,7 +9,7 @@ impl Function for Now {
         "now"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns the current timestamp in the UTC timezone with nanosecond precision."
     }
 

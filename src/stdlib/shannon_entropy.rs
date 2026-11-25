@@ -5,7 +5,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 
-static DEFAULT_SEGMENTATION: Value = Value::Bytes(Bytes::from_static("byte".as_bytes()));
+static DEFAULT_SEGMENTATION: Value = Value::from_static_str("byte");
 
 static SEGMENTATION_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -137,7 +137,7 @@ impl Function for ShannonEntropy {
         "shannon_entropy"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Generates [Shannon entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) from given string. It can generate it based on string bytes, codepoints, or graphemes."
     }
 
@@ -224,7 +224,7 @@ impl FunctionExpression for ShannonEntropyFn {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use crate::value::ObjectMap;
 
     use super::*;
     use crate::{stdlib::util::round_to_precision, value};
@@ -326,7 +326,7 @@ mod tests {
 
     fn prepare_function(function: &ShannonEntropyFn) -> Resolved {
         let tz = TimeZone::default();
-        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut object: Value = Value::Object(ObjectMap::new());
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         function.resolve(&mut ctx)

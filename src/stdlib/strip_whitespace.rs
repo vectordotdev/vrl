@@ -8,7 +8,7 @@ impl Function for StripWhitespace {
         "strip_whitespace"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Strips whitespace from the start and end of `value`, where whitespace is defined by the [Unicode `White_Space` property](https://en.wikipedia.org/wiki/Unicode_character_property#Whitespace)."
     }
 

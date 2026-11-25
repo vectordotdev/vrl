@@ -12,7 +12,7 @@ fn make_object_2(keys: Vec<Value>, values: Vec<Value>) -> Resolved {
     keys.into_iter()
         .zip(values)
         .filter_map(|(key, value)| {
-            make_key_string(key)
+            make_key_string(&key)
                 .transpose()
                 .map(|key| key.map(|key| (key, value)))
         })
@@ -26,15 +26,17 @@ fn make_key_value(value: Value) -> ExpressionResult<Option<(KeyString, Value)>> 
     let Some(key) = iter.next() else {
         return Err("array value too short".into());
     };
-    Ok(make_key_string(key)?.map(|key| (key, iter.next().unwrap_or(Value::Null))))
+    Ok(make_key_string(&key)?.map(|key| (key, iter.next().unwrap_or(Value::Null))))
 }
 
-fn make_key_string(key: Value) -> ExpressionResult<Option<KeyString>> {
-    match key {
-        Value::Bytes(key) => Ok(Some(String::from_utf8_lossy(&key).into())),
-        Value::Null => Ok(None),
-        _ => Err("object keys must be strings".into()),
+fn make_key_string(key: &Value) -> ExpressionResult<Option<KeyString>> {
+    if key.is_null() {
+        return Ok(None);
     }
+    Ok(Some(
+        key.to_key_string_lossy()
+            .ok_or("object keys must be strings")?,
+    ))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -45,7 +47,7 @@ impl Function for ObjectFromArray {
         "object_from_array"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Iterate over either one array of arrays or a pair of arrays and create an object out of all the key-value pairs contained in them.
             With one array of arrays, any entries with no value use `null` instead.

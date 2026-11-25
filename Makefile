@@ -1,8 +1,10 @@
-.PHONY: help all clippy fmt fmt-check test vrl-test \
-	check-typos check-features check-licenses check-msrv check-deny check-wasm32 \
-	check-docs check-lockfile generate-docs
+.PHONY: help all check-clippy fmt fmt-check test vrl-test \
+	check-typos check-features check-licenses write-licenses check-msrv check-deny check-wasm32 \
+	check-docs check-lockfile generate-docs install-vdev
 
-CARGO_DENY_VERSION        := 0.18.9
+CARGO_DENY_VERSION        := 0.20.2
+VDEV_VERSION              := 0.3.44
+VDEV                      ?= vdev
 CARGO_HACK_VERSION        := 0.5.29
 CARGO_MSRV_VERSION        := 0.17.1
 DD_LICENSE_TOOL_VERSION   := 1.0.6
@@ -20,10 +22,7 @@ endef
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-all: fmt-check clippy test vrl-test check-licenses check-wasm32 ## Run the common pre-PR checks
-
-clippy: ## Lint with clippy (workspace, all targets, all features)
-	cargo clippy --workspace --all-targets --all-features -- -D warnings
+all: fmt-check test vrl-test check-clippy check-licenses check-wasm32 ## Run the common pre-PR checks
 
 fmt: ## Format all code
 	cargo fmt --all
@@ -37,6 +36,9 @@ test: ## Run cargo tests
 vrl-test: ## Run VRL integration tests
 	cargo run --package vrl-tests --bin vrl-tests
 
+check-clippy: ## Lint with clippy (workspace, all targets, all features)
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
+
 check-typos: ## Check spelling with `typos`
 	$(call ensure-cargo-tool,typos-cli,$(TYPOS_CLI_VERSION))
 	typos
@@ -49,13 +51,22 @@ check-licenses: ## Verify the 3rd-party license file is up to date
 	$(call ensure-cargo-tool,dd-rust-license-tool,$(DD_LICENSE_TOOL_VERSION))
 	dd-rust-license-tool check
 
+write-licenses: ## Update the 3rd-party license file
+	$(call ensure-cargo-tool,dd-rust-license-tool,$(DD_LICENSE_TOOL_VERSION))
+	dd-rust-license-tool write
+
 check-msrv: ## Verify MSRV
 	$(call ensure-cargo-tool,cargo-msrv,$(CARGO_MSRV_VERSION))
 	cargo msrv verify
 
-check-deny: ## Run cargo-deny checks
+install-vdev: ## Install the pinned, prebuilt vdev CLI (requires cargo-binstall)
+	@if ! $(VDEV) --version 2>/dev/null | grep -qx 'vdev $(VDEV_VERSION)'; then \
+		cargo binstall vdev --version "$(VDEV_VERSION)" --no-confirm --strategies crate-meta-data; \
+	fi
+
+check-deny: install-vdev ## Run cargo-deny checks, optionally comparing against BASE_DIR
 	$(call ensure-cargo-tool,cargo-deny,$(CARGO_DENY_VERSION))
-	cargo deny --log-level error --all-features check all
+	$(VDEV) check deny $(if $(BASE_DIR),--base-dir "$(BASE_DIR)")
 
 check-wasm32: ## Check wasm32-unknown-unknown build of the stdlib
 	rustup target add wasm32-unknown-unknown

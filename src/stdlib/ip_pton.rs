@@ -24,7 +24,7 @@ impl Function for IpPton {
         "ip_pton"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Converts IPv4 and IPv6 addresses from text to binary form.
 

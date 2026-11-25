@@ -43,6 +43,7 @@ extern {
         "false" => Token::False,
         "abort" => Token::Abort,
         "return" => Token::Return,
+        "break" => Token::Break,
 
         ";" => Token::SemiColon,
         "\n" => Token::Newline,
@@ -109,7 +110,7 @@ RootExprs: Vec<Node<RootExpr>> = {
 };
 
 RootExpr: Node<RootExpr> = {
-    Expr => Node::new(<>.span(), RootExpr::Expr(<>)),
+    <expr:Expr> => Node::new(expr.span(), RootExpr::Expr(expr)),
 
     // Root expressions are allowed to fail. The parser will continue with the
     // next expression in the program.
@@ -174,9 +175,10 @@ Exprs: Vec<Node<Expr>> = {
 
 
 Expr: Node<Expr> = {
-    Sp<IfStatement> => Node::new(<>.span(), Expr::IfStatement(<>)),
+    <if_statement:Sp<IfStatement>> => Node::new(if_statement.span(), Expr::IfStatement(if_statement)),
     Sp<AbortExpr>,
     Sp<ReturnExpr>,
+    Sp<BreakExpr>,
     AssignmentExpr,
 };
 
@@ -205,6 +207,10 @@ ReturnExpr: Expr = {
     },
 };
 
+BreakExpr: Expr = {
+    Sp<"break"> => Expr::Break(<>.map(|_| Break)),
+};
+
 // An identifier that is allowed to include reserved keywords.
 #[inline]
 AnyIdent: Ident = {
@@ -217,6 +223,7 @@ AnyIdent: Ident = {
     "false" => Ident("false".to_owned()),
     "abort" => Ident("abort".to_owned()),
     "return" => Ident("return".to_owned()),
+    "break" => Ident("break".to_owned()),
 };
 
 // -----------------------------------------------------------------------------
@@ -224,7 +231,7 @@ AnyIdent: Ident = {
 // -----------------------------------------------------------------------------
 
 AssignmentExpr: Node<Expr> = {
-    Assignment => Node::new(<>.span(), Expr::Assignment(<>)),
+    <assignment:Assignment> => Node::new(assignment.span(), Expr::Assignment(assignment)),
     ArithmeticExpr,
 };
 

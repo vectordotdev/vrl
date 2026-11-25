@@ -61,7 +61,7 @@ impl Function for Unnest {
         "unnest"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Unnest an array field from an object to create an array of objects using that field; keeping all other fields.
 
@@ -127,10 +127,17 @@ impl Function for Unnest {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let path = arguments.required_query("path")?;
+
+        // `unnest` copies the rest of the target around each element of the array, so it reads the
+        // whole target, not only the path it's given.
+        if let expression::Target::External(prefix) = path.target() {
+            ctx.record_target_query(OwnedTargetPath::root(*prefix));
+        }
+
         Ok(UnnestFn { path }.as_expr())
     }
 }

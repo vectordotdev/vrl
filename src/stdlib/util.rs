@@ -7,6 +7,11 @@ cfg_if::cfg_if! {
 
 use crate::value::{KeyString, ObjectMap, Value};
 
+#[cfg(feature = "enable_crypto_functions")]
+use bytes::Bytes;
+#[cfg(feature = "enable_crypto_functions")]
+use bytestring::ByteString;
+
 pub(crate) const DYNAMIC_REGEX_NOTICE: &str = indoc::indoc! {"
     When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
     the regex is compiled on every function call. For high-throughput pipelines, prefer
@@ -30,6 +35,19 @@ where
 {
     let multiplier = 10_f64.powf(precision as f64);
     fun(num * multiplier) / multiplier
+}
+
+/// Hex-encode a digest into a `ByteString`.
+///
+/// `N` is the hex length in bytes (twice the digest length). Hex is ASCII, so the
+/// result is UTF-8 by construction.
+#[cfg(feature = "enable_crypto_functions")]
+#[inline]
+pub(crate) fn hex_encode<const N: usize>(digest: impl AsRef<[u8]>) -> ByteString {
+    let mut buf = [0u8; N];
+    hex::encode_to_slice(digest, &mut buf).expect("hex buffer sized for digest");
+    // SAFETY: hexadecimal encoding is ASCII.
+    unsafe { ByteString::from_bytes_unchecked(Bytes::copy_from_slice(&buf)) }
 }
 
 #[derive(Debug, Clone)]
@@ -110,18 +128,10 @@ pub(crate) fn regex_kind(
 }
 
 pub(crate) fn is_nullish(value: &Value) -> bool {
-    match value {
-        Value::Bytes(v) => {
-            if v.is_empty() || v.as_ref() == b"-" {
-                return true;
-            }
-
-            let s = value.as_str().expect("value should be bytes");
-            s.chars().all(char::is_whitespace)
-        }
-        Value::Null => true,
-        _ => false,
-    }
+    value.is_null()
+        || value.to_str_lossy().is_some_and(|text| {
+            text.is_empty() || text == "-" || text.chars().all(char::is_whitespace)
+        })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

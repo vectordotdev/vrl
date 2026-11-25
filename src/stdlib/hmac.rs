@@ -15,7 +15,7 @@ macro_rules! hmac {
     }};
 }
 
-static DEFAULT_ALGORITHM: Value = Value::Bytes(Bytes::from_static("SHA-256".as_bytes()));
+static DEFAULT_ALGORITHM: Value = Value::from_static_str("SHA-256");
 
 static ALGORITHM_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -81,7 +81,7 @@ impl Function for Hmac {
         "hmac"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Calculates a [HMAC](https://en.wikipedia.org/wiki/HMAC) of the `value` using the given `key`.
             The hashing `algorithm` used can be optionally specified.

@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 use chrono::{TimeZone as _, Utc};
 use std::str::FromStr;
 
-static DEFAULT_UNIT: Value = Value::Bytes(Bytes::from_static("seconds".as_bytes()));
+static DEFAULT_UNIT: Value = Value::from_static_str("seconds");
 
 static UNIT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -63,7 +63,7 @@ impl Function for FromUnixTimestamp {
         "from_unix_timestamp"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Converts the `value` integer from a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) to a VRL `timestamp`.
 
@@ -201,12 +201,12 @@ mod tests {
     use crate::compiler::TimeZone;
     use crate::compiler::expression::Literal;
     use crate::value;
+    use crate::value::ObjectMap;
     use regex::Regex;
-    use std::collections::BTreeMap;
 
     #[test]
     fn out_of_range_integer() {
-        let mut object: Value = BTreeMap::new().into();
+        let mut object: Value = ObjectMap::new().into();
         let mut runtime_state = state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);

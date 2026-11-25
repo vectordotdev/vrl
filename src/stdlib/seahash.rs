@@ -14,7 +14,7 @@ impl Function for Seahash {
         "seahash"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Calculates a [Seahash](https://docs.rs/seahash/latest/seahash/) hash of the `value`.
             **Note**: Due to limitations in the underlying VRL data types, this function converts the unsigned 64-bit integer SeaHash result to a signed 64-bit integer. Results higher than the signed 64-bit integer maximum value wrap around to negative values.

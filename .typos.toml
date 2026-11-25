@@ -13,6 +13,8 @@ extend-exclude = [
 ]
 
 [default.extend-words]
+# Community Open Source Engineering team acronym used in the README
+cose = "cose"
 # Punycode encoding of "café.com" — intentional in punycode test fixtures
 caf = "caf"
 # Intentional misspelling used as an example in VRL error diagnostics tests

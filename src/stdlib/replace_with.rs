@@ -92,7 +92,7 @@ const STRING_NAME: &str = "string";
 const CAPTURES_NAME: &str = "captures";
 
 fn captures_to_value(captures: &Captures, capture_names: CaptureNames) -> Value {
-    let mut object: ObjectMap = BTreeMap::new();
+    let mut object: ObjectMap = ObjectMap::new();
 
     // The full match, named "string"
     object.insert(STRING_NAME.into(), captures.get(0).unwrap().as_str().into());
@@ -126,7 +126,7 @@ impl Function for ReplaceWith {
         "replace_with"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Replaces all matching instances of `pattern` using a closure.
 
@@ -270,6 +270,7 @@ impl Function for ReplaceWith {
                 },
             }],
             is_iterator: false,
+            supports_break: false,
         })
     }
 }

@@ -40,7 +40,7 @@ impl Function for MapKeys {
         "map_keys"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Map the keys within an object.
 
@@ -165,6 +165,7 @@ impl Function for MapKeys {
                 },
             }],
             is_iterator: true,
+            supports_break: false,
         })
     }
 }

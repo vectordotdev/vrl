@@ -9,7 +9,7 @@ impl Function for ParseLogFmt {
         "parse_logfmt"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {r#"
             Parses the `value` in [logfmt](https://brandur.org/logfmt).
 

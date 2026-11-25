@@ -217,8 +217,8 @@ fn parse_time(
 }
 
 /// Takes the field as a string and returns a `Value`.
-/// Most fields are `Value::Bytes`, but some are other types, we convert to those
-/// types based on the fieldname.
+/// Most string fields are `Value::String`, but some are other types; we convert to
+/// those types based on the field name.
 fn capture_value(
     name: &str,
     value: &str,
@@ -246,7 +246,7 @@ fn capture_value(
                 .parse()
                 .map_err(|_| format!("failed parsing {name}"))?,
         ),
-        _ => Value::Bytes(value.to_owned().into()),
+        _ => Value::from(value),
     })
 }
 

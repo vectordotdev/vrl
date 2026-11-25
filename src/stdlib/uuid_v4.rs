@@ -1,10 +1,9 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
     let uuid = uuid::Uuid::new_v4().hyphenated().encode_lower(&mut buf);
-    Bytes::copy_from_slice(uuid.as_bytes()).into()
+    Value::from(&*uuid)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -15,7 +14,7 @@ impl Function for UuidV4 {
         "uuid_v4"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Generates a random [UUIDv4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random)) string."
     }
 
@@ -62,8 +61,8 @@ impl FunctionExpression for UuidV4Fn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value::ObjectMap;
     use crate::value::Value;
-    use std::collections::BTreeMap;
 
     test_type_def![default {
         expr: |_| { UuidV4Fn },
@@ -73,19 +72,12 @@ mod tests {
     #[test]
     fn uuid_v4() {
         let mut state = state::RuntimeState::default();
-        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut object: Value = Value::Object(ObjectMap::new());
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV4Fn.resolve(&mut ctx).unwrap();
 
-        assert!(matches!(&value, Value::Bytes(_)));
-
-        match value {
-            Value::Bytes(val) => {
-                let val = String::from_utf8_lossy(&val);
-                uuid::Uuid::parse_str(&val).expect("valid UUID V4");
-            }
-            _ => unreachable!(),
-        }
+        let text = value.as_string().expect("UUIDv4 must be a string");
+        uuid::Uuid::parse_str(text).expect("valid UUID V4");
     }
 }

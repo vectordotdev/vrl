@@ -1,0 +1,11 @@
+# issue: https://github.com/vectordotdev/vrl/issues/1989
+# result: 1
+
+x = {}
+if is_object(x) {
+# a
+# b — c
+# it's "quoted
+  .a = 1
+}
+.a

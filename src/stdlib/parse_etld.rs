@@ -33,7 +33,7 @@ impl Function for ParseEtld {
         "parse_etld"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the [eTLD](https://developer.mozilla.org/en-US/docs/Glossary/eTLD) from `value` representing domain name."
     }
 
@@ -206,7 +206,7 @@ impl FunctionExpression for ParseEtldFn {
 
         Ok(map
             .into_iter()
-            .map(|(k, v)| (k.to_owned(), v))
+            .map(|(k, v)| (KeyString::from(k), v))
             .collect::<Value>())
     }
 

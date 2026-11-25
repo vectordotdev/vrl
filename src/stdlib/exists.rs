@@ -8,7 +8,7 @@ impl Function for Exists {
         "exists"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Checks whether the `path` exists for the target.
 
@@ -84,7 +84,7 @@ fn exists(query: &expression::Query, ctx: &mut Context) -> Resolved {
     if let Some(target_path) = query.external_path() {
         return Ok(ctx
             .target_mut()
-            .target_get(&target_path)
+            .target_get(target_path)
             .ok()
             .flatten()
             .is_some()

@@ -14,37 +14,37 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
-    pub fn error(code: usize, message: impl ToString) -> Self {
+    pub fn error(code: usize, message: impl Into<String>) -> Self {
         Self::new(Severity::Error, code, message, vec![], vec![])
     }
 
-    pub fn bug(code: usize, message: impl ToString) -> Self {
+    pub fn bug(code: usize, message: impl Into<String>) -> Self {
         Self::new(Severity::Bug, code, message, vec![], vec![])
     }
 
     pub fn new(
         severity: Severity,
         code: usize,
-        message: impl ToString,
+        message: impl Into<String>,
         labels: Vec<Label>,
         notes: Vec<Note>,
     ) -> Self {
         Self {
             severity,
             code,
-            message: message.to_string(),
+            message: message.into(),
             labels,
             notes,
         }
     }
 
     #[must_use]
-    pub fn with_primary(self, message: impl ToString, span: impl Into<Span>) -> Self {
+    pub fn with_primary(self, message: impl Into<String>, span: impl Into<Span>) -> Self {
         self.with_label(Label::primary(message, span.into()))
     }
 
     #[must_use]
-    pub fn with_context(self, message: impl ToString, span: impl Into<Span>) -> Self {
+    pub fn with_context(self, message: impl Into<String>, span: impl Into<Span>) -> Self {
         self.with_label(Label::context(message, span.into()))
     }
 
@@ -161,6 +161,10 @@ impl DiagnosticList {
     /// Turns the diagnostic list into a result type, the `Ok` variant is
     /// returned if none of the diagnostics are errors or bugs. Otherwise the
     /// `Err` variant is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns the diagnostic list when it contains at least one error or bug.
     pub fn into_result(self) -> std::result::Result<DiagnosticList, DiagnosticList> {
         if self.is_err() {
             return Err(self);

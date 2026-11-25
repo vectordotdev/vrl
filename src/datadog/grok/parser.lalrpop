@@ -88,7 +88,7 @@ Arg: FunctionArgument = {
 Literal: Value = {
     Integer => Value::Integer(<>),
     Float => Value::Float(<>),
-    String => Value::Bytes(<>.into()),
+    String => Value::from(<>),
     Boolean => Value::Boolean(<>),
     Null => Value::Null,
 };

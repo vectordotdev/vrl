@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn parses_whitespace() {
         let cases = [" ", "    ", "\t"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::MatchAllDocs),
@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn parses_unquoted_default_field_query() {
         let cases = ["foo"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -72,7 +72,7 @@ mod tests {
     #[test]
     fn parses_quoted_default_field_query() {
         let cases = ["\"foo bar\""];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn parses_attribute_term_query() {
         let cases = ["foo:bar", "foo:(bar)", "foo:b\\ar", "foo:(b\\ar)"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn parses_numeric_attribute_term_query() {
         let cases = ["foo:10"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn parses_attribute_term_query_with_escapes() {
         let cases = ["foo:bar\\:baz", "fo\\o:bar\\:baz"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn parses_attribute_comparison_query_with_escapes() {
         let cases = ["foo:<4.12345E-4", "foo:<4.12345E\\-4"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn parses_and_normalizes_multiterm_query() {
         let cases = ["foo bar", "foo        bar"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn parses_multiple_multiterm_query() {
         let cases = ["foo bar baz AND qux quux quuz"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
@@ -173,7 +173,7 @@ mod tests {
     #[test]
     fn parses_negated_attribute_term_query() {
         let cases = ["-foo:bar", "- foo:bar", "NOT foo:bar"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             if let QueryNode::NegatedNode { ref node } = res
                 && let QueryNode::AttributeTerm {
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn parses_quoted_attribute_term_query() {
         let cases = ["foo:\"bar baz\""];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn parses_attribute_prefix_query() {
         let cases = ["foo:ba*"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn parses_attribute_wildcard_query() {
         let cases = ["foo:b*r"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn parses_attribute_wildcard_query_with_trailing_question_mark() {
         let cases = ["foo:ba?"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn parses_attribute_wildcard_query_with_leading_wildcard() {
         let cases = ["foo:*ar"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn parses_non_numeric_attribute_comparison_query() {
         let cases = ["foo:>=bar"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -279,7 +279,7 @@ mod tests {
     #[test]
     fn parses_numeric_attribute_range_query() {
         let cases = ["foo:[10 TO 20]"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -298,7 +298,7 @@ mod tests {
     #[test]
     fn parses_non_numeric_attribute_range_query() {
         let cases = ["foo:{bar TO baz}"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -317,7 +317,7 @@ mod tests {
     #[test]
     fn parses_attribute_range_query_with_open_endpoints() {
         let cases = ["foo:[* TO *]"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn parses_attribute_range_query_with_fake_wildcards() {
         let cases = ["foo:[ba* TO b*z]"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn parses_attribute_exists_query() {
         let cases = ["_exists_:foo", "_exists_:\"foo\""];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -369,7 +369,7 @@ mod tests {
     #[test]
     fn parses_attribute_exists_query_with_escapes() {
         let cases = ["_exists_:foo\\ bar"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn parses_star_as_wildcard_not_exists() {
         let cases = ["foo:*"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn parses_attribute_missing_query() {
         let cases = ["_missing_:foo", "_missing_:\"foo\""];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -411,7 +411,7 @@ mod tests {
     #[test]
     fn parses_attribute_missing_query_with_escapes() {
         let cases = ["_missing_:foo\\ bar"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -425,7 +425,7 @@ mod tests {
     #[test]
     fn parses_match_all_docs_query() {
         let cases = ["*:*", "*", "_default_:*", "foo:(*:*)"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::MatchAllDocs),
@@ -437,7 +437,7 @@ mod tests {
     #[test]
     fn parses_all_as_wildcard() {
         let cases = ["_all:*"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res,
@@ -457,7 +457,7 @@ mod tests {
             "NOT foo:(*:*)",
             "foo:(NOT *:*)",
         ];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::MatchNoDocs),
@@ -469,7 +469,7 @@ mod tests {
     #[test]
     fn parses_boolean_nodes_with_implicit_operators() {
         let cases = ["foo:bar baz:qux quux:quuz"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
@@ -490,7 +490,7 @@ mod tests {
             "-foo:bar baz:qux NOT quux:quuz",
             "-foo:bar baz:qux -quux:quuz",
         ];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
@@ -511,7 +511,7 @@ mod tests {
             "foo:bar OR -baz:qux AND quux:quuz",
             "foo:bar OR NOT baz:qux AND quux:quuz",
         ];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::Boolean { oper: BooleanType::Or, ref nodes } if
@@ -534,7 +534,7 @@ mod tests {
             "foo:bar OR baz:qux AND quux:quuz",
             "foo:bar || baz:qux && quux:quuz",
         ];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::Boolean { oper: BooleanType::Or, ref nodes } if
@@ -552,7 +552,7 @@ mod tests {
     #[test]
     fn parses_nested_boolean_query_node() {
         let cases = ["foo:bar (baz:qux quux:quuz)"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
@@ -570,7 +570,7 @@ mod tests {
     #[test]
     fn parses_nested_boolean_query_node_with_or() {
         let cases = ["(foo:bar OR baz:qux) quux:quuz"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
 
             assert!(
@@ -587,7 +587,7 @@ mod tests {
     #[test]
     fn parses_negated_parenthesized_default_multiterm_query() {
         let cases = ["NOT (foo bar)", "-(foo bar)"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             if let QueryNode::NegatedNode { ref node } = res
                 && let QueryNode::AttributeTerm {
@@ -606,7 +606,7 @@ mod tests {
     #[test]
     fn parses_multiterm_with_leading_not_without_parens() {
         let cases = ["NOT foo bar", "- foo bar"]; // NOT only applies to the first term
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
 
             assert!(
@@ -621,7 +621,7 @@ mod tests {
     #[test]
     fn parses_negated_parenthesized_fielded_multiterm_query() {
         let cases = ["NOT foo:(bar baz)", "-foo:(bar baz)"];
-        for query in cases.iter() {
+        for query in &cases {
             let res = parse(query);
             if let QueryNode::NegatedNode { ref node } = res
                 && let QueryNode::AttributeTerm {

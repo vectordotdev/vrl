@@ -13,7 +13,7 @@ impl Function for ParseRubyHash {
         "parse_ruby_hash"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` as ruby hash."
     }
 

@@ -67,11 +67,7 @@ impl Function for EncodeProto {
         "encode_proto"
     }
 
-    fn summary(&self) -> &'static str {
-        "Encodes a value into a protobuf"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` into a protocol buffer payload."
     }
 

@@ -21,7 +21,7 @@ fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved 
     if let Some(target_path) = query.external_path() {
         Ok(ctx
             .target_mut()
-            .target_remove(&target_path, compact)
+            .target_remove(target_path, compact)
             .ok()
             .flatten()
             .unwrap_or(Value::Null))
@@ -53,7 +53,7 @@ impl Function for Del {
         "del"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Removes the field specified by the static `path` from the target.
 
@@ -162,7 +162,7 @@ impl Function for Del {
         let compact = arguments.optional("compact");
 
         if let Some(target_path) = query.external_path()
-            && ctx.is_read_only_path(&target_path)
+            && ctx.is_read_only_path(target_path)
         {
             return Err(function::Error::ReadOnlyMutation {
                 context: format!("{query} is read-only, and cannot be deleted"),

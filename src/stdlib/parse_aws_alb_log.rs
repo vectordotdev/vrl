@@ -21,10 +21,18 @@ const PARAMETERS: &[Parameter] = &[
         .default(&DEFAULT_STRICT_MODE),
 ];
 
-fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
+fn parse_aws_alb_log(bytes: &Value, strict_mode: Value) -> Resolved {
+    let bytes = bytes.try_bytes_utf8_lossy()?;
     let strict_mode = strict_mode.try_boolean()?;
-    parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
+    parse_log(&bytes, strict_mode)
+}
+
+fn null_if_dash(value: Value) -> Value {
+    if value.as_bytes().is_some_and(|bytes| bytes.as_ref() == b"-") {
+        Value::Null
+    } else {
+        value
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -35,7 +43,7 @@ impl Function for ParseAwsAlbLog {
         "parse_aws_alb_log"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses `value` in the [Elastic Load Balancer Access format](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html#access-log-entry-examples)."
     }
 
@@ -180,7 +188,7 @@ impl FunctionExpression for ParseAwsAlbLogFn {
         let strict_mode = self
             .strict_mode
             .map_resolve_with_default(ctx, || DEFAULT_STRICT_MODE.clone())?;
-        parse_aws_alb_log(bytes, strict_mode)
+        parse_aws_alb_log(&bytes, strict_mode)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -245,7 +253,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 
 #[allow(clippy::too_many_lines)]
 fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
-    let mut log = BTreeMap::<KeyString, Value>::new();
+    let mut log = ObjectMap::new();
 
     macro_rules! get_value {
         ($name:expr_2021, $parser:expr_2021, $err:ty) => {{
@@ -268,10 +276,7 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
         ($name:expr_2021, $parser:expr_2021, $err:ty) => {
             log.insert(
                 $name.into(),
-                match get_value!($name, $parser, $err).into() {
-                    Value::Bytes(bytes) if bytes == "-" => Value::Null,
-                    value => value,
-                },
+                null_if_dash(get_value!($name, $parser, $err).into()),
             )
         };
         ($name:expr_2021, $parser:expr_2021) => {
@@ -293,7 +298,7 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
             log.insert(
                 $name.into(),
                 match get_value!($name, take_tid_or_nothing) {
-                    Some(value) => Value::Bytes(value.to_owned().into()),
+                    Some(value) => Value::from(value),
                     None => Value::Null,
                 },
             )
@@ -323,21 +328,15 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
     let request = get_value!("request", take_quoted1);
     let mut iter = request.splitn(2, ' ');
     log.insert(
-        "request_method".to_owned().into(),
-        match iter.next().unwrap().into() {
-            Value::Bytes(bytes) if bytes == "-" => Value::Null,
-            value => value,
-        },
+        "request_method".into(),
+        null_if_dash(iter.next().unwrap().into()),
     ); // split always have at least 1 item
     match iter.next() {
         Some(value) => {
             let mut iter = value.rsplitn(2, ' ');
             log.insert(
-                "request_protocol".to_owned().into(),
-                match iter.next().unwrap().into() {
-                    Value::Bytes(bytes) if bytes == "-" => Value::Null,
-                    value => value,
-                },
+                "request_protocol".into(),
+                null_if_dash(iter.next().unwrap().into()),
             ); // same as previous one
             match iter.next() {
                 Some(value) => log.insert("request_url".into(), value.into()),

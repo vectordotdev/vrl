@@ -1,0 +1,7 @@
+# result: operation would produce NaN
+
+large = to_float!("1.7976931348623157e+308")
+negative_large = to_float!("-1.7976931348623157e+308")
+positive_inf = large + large
+negative_inf = negative_large + negative_large
+positive_inf + negative_inf

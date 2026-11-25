@@ -34,7 +34,7 @@ impl Function for FormatInt {
         "format_int"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Formats the integer `value` into a string representation using the given base/radix."
     }
 
