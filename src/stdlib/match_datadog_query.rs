@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::datadog_filter::{
     Filter, Matcher, Resolver, Run, build_matcher,
-    regex::{wildcard_regex, word_regex},
+    regex::{WildcardMatcher, word_regex},
 };
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
 use crate::owned_value_path;
@@ -283,22 +283,22 @@ impl Filter<Value> for VrlFilter {
                 )
             }
             Field::Tag(tag) => {
-                let re = wildcard_regex(&format!("{tag}:{wildcard}"));
+                let matcher = WildcardMatcher::new(&format!("{tag}:{wildcard}"));
 
                 resolve_value(
                     buf,
                     Run::boxed(move |value| match value {
-                        Value::Array(v) => v.iter().any(|v| re.is_match(&string_value(v))),
+                        Value::Array(v) => v.iter().any(|v| matcher.is_match(&string_value(v))),
                         _ => false,
                     }),
                 )
             }
             _ => {
-                let re = wildcard_regex(wildcard);
+                let matcher = WildcardMatcher::new(wildcard);
 
                 resolve_value(
                     buf,
-                    Run::boxed(move |value| re.is_match(&string_value(value))),
+                    Run::boxed(move |value| matcher.is_match(&string_value(value))),
                 )
             }
         })
