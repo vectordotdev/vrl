@@ -1,0 +1,12 @@
+# result: "2021-03-26T16:00:00+00:00"
+
+# Without `else`, the null fallback joins at the innermost arm, as nested `if` did.
+r = if true {
+  values({"x": t'2021-03-26T16:00:00Z'})
+} else if false {
+  append([], array!(parse_json!("[]")))
+} else if false {
+  [1]
+}
+
+format_timestamp!(r[0], format: "%+")

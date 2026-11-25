@@ -1,0 +1,14 @@
+# result: "2021-03-26T16:00:00+00:00"
+
+# Four arms: the result union keeps the nested association A | (B | (C | D)).
+r = if true {
+  values({"x": t'2021-03-26T16:00:00Z'})
+} else if false {
+  append([], array!(parse_json!("[]")))
+} else if false {
+  [true]
+} else {
+  [1]
+}
+
+format_timestamp!(r[0], format: "%+")

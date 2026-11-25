@@ -1,0 +1,11 @@
+# result: "2021-03-26T16:00:00+00:00"
+
+# Without `else`, the state after the last predicate merges at the innermost arm.
+r = values({"x": t'2021-03-26T16:00:00Z'})
+if false {
+  r = append([], array!(parse_json!("[]")))
+} else if false {
+  r = [1]
+}
+
+format_timestamp!(r[0], format: "%+")

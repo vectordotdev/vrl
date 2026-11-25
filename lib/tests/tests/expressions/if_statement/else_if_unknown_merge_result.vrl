@@ -1,0 +1,13 @@
+# result: "2021-03-26T16:00:00+00:00"
+
+# Arm result types union right to left, as nested `else { if }` did, so an exact
+# unknown element type (timestamp) from an early arm survives later arms.
+r = if true {
+  values({"x": t'2021-03-26T16:00:00Z'})
+} else if false {
+  append([], array!(parse_json!("[]")))
+} else {
+  [1]
+}
+
+format_timestamp!(r[0], format: "%+")

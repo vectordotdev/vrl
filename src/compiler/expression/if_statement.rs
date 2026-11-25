@@ -69,56 +69,61 @@ impl Expression for IfStatement {
         // have been applied (previous predicates ran and were false at runtime,
         // but their type-level side effects still apply).
         let mut running = state.clone();
-        let mut returns = Kind::never();
-        let mut arm_states: Vec<TypeState> = Vec::with_capacity(self.arms.len());
-        let mut result_def: Option<crate::compiler::TypeDef> = None;
+        let mut arm_infos: Vec<(TypeInfo, Kind)> = Vec::with_capacity(self.arms.len());
         // Locals present after arm 0's predicate (inbound + first-pred assigns).
         // Used below to drop bindings first introduced by later predicates.
         let mut locals_after_first_predicate = None;
 
         for arm in &self.arms {
             let predicate_info = arm.predicate.apply_type_info(&mut running);
-            returns.merge_keep(predicate_info.returns().clone(), false);
 
             if locals_after_first_predicate.is_none() {
                 locals_after_first_predicate = Some(running.local.clone());
             }
 
             let arm_info = arm.block.type_info(&running);
-            result_def = Some(match result_def {
-                None => arm_info.result,
-                Some(prev) => prev.union(arm_info.result),
-            });
-            arm_states.push(arm_info.state);
+            arm_infos.push((arm_info, predicate_info.returns().clone()));
         }
 
-        let mut result = result_def.expect("at least one arm");
+        // Combine right to left, exactly as nested `if a {} else { if b {} else {} }`
+        // did: arm i joins the already combined arms i+1.. and else. Type unions
+        // and state merges are not associative (an infinite unknown overwrites an
+        // exact one), so a left-to-right fold would infer different types.
+        let mut arm_infos = arm_infos.into_iter().rev();
+        let (last, last_predicate_returns) = arm_infos.next().expect("at least one arm");
 
-        let mut final_state = if let Some(else_block) = &self.else_block {
+        let (mut final_state, mut result) = if let Some(else_block) = &self.else_block {
             let else_info = else_block.type_info(&running);
-            result = result.union(else_info.result);
-
-            arm_states
-                .into_iter()
-                .fold(else_info.state, TypeState::merge)
+            (
+                last.state.merge(else_info.state),
+                last.result.union(else_info.result),
+            )
         } else {
-            // All predicates false → null, and state is the post-predicate state
-            // merged with every arm (same as nested `if` without `else`).
-            result = result.or_null();
-            arm_states.into_iter().fold(running, TypeState::merge)
+            // All predicates false: the result is null and the state is the one
+            // after the last predicate (same as nested `if` without `else`).
+            (last.state.merge(running), last.result.or_null())
         };
+        result
+            .returns_mut()
+            .merge_keep(last_predicate_returns, false);
+
+        for (arm_info, predicate_returns) in arm_infos {
+            final_state = arm_info.state.merge(final_state);
+            result = arm_info.result.union(result);
+            result.returns_mut().merge_keep(predicate_returns, false);
+        }
 
         // Flattened else-if peels parser `else { if }` wrappers. Those Blocks
         // used `apply_child_scope`, so locals first assigned in a later
         // predicate did not escape the chain. Re-apply that rule: keep/merge
         // updates to locals that already existed after arm 0's predicate;
         // drop bindings introduced only by later predicates (they are not
-        // definite when an earlier arm matched).
+        // definite when an earlier arm matched). Merges are per binding, so
+        // scoping once here equals scoping at each nested level.
         if let Some(baseline) = locals_after_first_predicate {
             final_state.local = baseline.apply_child_scope(final_state.local);
         }
 
-        result.returns_mut().merge_keep(returns, false);
         TypeInfo::new(final_state, result)
     }
 }
