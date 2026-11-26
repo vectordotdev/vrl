@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use serde_json::{
     Error, Map,
@@ -10,6 +10,7 @@ use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 static DEFAULT_LOSSY: Value = Value::Boolean(true);
+static DEFAULT_EXTRACT_EMBEDDED: Value = Value::Boolean(false);
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required(
@@ -31,6 +32,20 @@ with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an e
 if there are any invalid UTF-8 characters present.",
     )
     .default(&DEFAULT_LOSSY),
+    Parameter::optional(
+        "extract_embedded",
+        kind::BOOLEAN,
+        "Whether to extract JSON objects and arrays embedded in surrounding text, such as a log
+preamble. Returns an array containing every document found, in order, and ignores the
+surrounding text. Returns an error if no document is found.",
+    )
+    .default(&DEFAULT_EXTRACT_EMBEDDED),
+    Parameter::optional(
+        "max_documents",
+        kind::INTEGER,
+        "Maximum number of documents to extract. Only applies when `extract_embedded` is true.
+The value must be greater than 0.",
+    ),
 ];
 
 fn parse_json(value: Value, lossy: Value) -> Resolved {
@@ -61,6 +76,55 @@ fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Value) -> Resolv
         .map_err(|e| format!("unable to parse json with max depth: {e}"))?;
 
     Ok(Value::from(res))
+}
+
+// parse_embedded scans for JSON objects and arrays in surrounding text, skipping anything that
+// does not parse, and returns the documents found in order. Bracketed noise such as `[123]` is
+// valid JSON and is returned as an array for the caller to filter.
+fn parse_embedded(
+    value: Value,
+    lossy: bool,
+    max_depth: Option<u8>,
+    max_documents: Option<usize>,
+) -> Resolved {
+    let bytes = value.try_bytes()?;
+    let text = if lossy {
+        String::from_utf8_lossy(&bytes)
+    } else {
+        std::str::from_utf8(&bytes)
+            .map(Cow::Borrowed)
+            .map_err(|e| format!("unable to parse json: {e}"))?
+    };
+
+    let mut docs = Vec::new();
+    let mut pos = 0;
+    while let Some(offset) = text[pos..].find(['{', '[']) {
+        if max_documents.is_some_and(|max| docs.len() >= max) {
+            break;
+        }
+        let start = pos + offset;
+        let mut stream =
+            serde_json::Deserializer::from_str(&text[start..]).into_iter::<&RawValue>();
+        match stream.next() {
+            Some(Ok(raw)) => {
+                docs.push(match max_depth {
+                    Some(depth) => parse_layer(raw, depth)
+                        .map_err(|e| format!("unable to parse json with max depth: {e}"))?,
+                    None => serde_json::from_str(raw.get())
+                        .map_err(|e| format!("unable to parse json: {e}"))?,
+                });
+                pos = start + stream.byte_offset();
+            }
+            // Truncated document: stop so its inner objects are not returned on their own.
+            Some(Err(e)) if e.is_eof() => break,
+            _ => pos = start + 1,
+        }
+    }
+
+    if docs.is_empty() {
+        return Err("unable to parse json: no json documents found".into());
+    }
+    Ok(Value::from(JsonValue::Array(docs)))
 }
 
 fn parse_layer(value: &RawValue, remaining_depth: u8) -> std::result::Result<JsonValue, Error> {
@@ -121,6 +185,15 @@ fn validate_depth(value: Value) -> ExpressionResult<u8> {
             "max_depth value should be greater than 0 and less than 128, got {res}"
         )))
     }
+}
+
+fn validate_max_documents(value: Value) -> ExpressionResult<usize> {
+    let res = value.try_integer()?;
+    usize::try_from(res).ok().filter(|n| *n > 0).ok_or_else(|| {
+        ExpressionError::from(format!(
+            "max_documents value should be greater than 0, got {res}"
+        ))
+    })
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -213,6 +286,16 @@ impl Function for ParseJson {
                 source: r#"parse_json!(s'{"first_level":{"second_level":"finish"}}', max_depth: 1)"#,
                 result: Ok(r#"{"first_level":"{\"second_level\":\"finish\"}"}"#),
             },
+            example! {
+                title: "Parse embedded JSON",
+                source: r#"parse_json!(s'INFO controller.go:12 {"a": 1} {...} {"b": 2}', extract_embedded: true)"#,
+                result: Ok(r#"[{ "a": 1 }, { "b": 2 }]"#),
+            },
+            example! {
+                title: "Parse embedded JSON with max_documents",
+                source: r#"parse_json!(s'INFO {"a": 1} {"b": 2}', extract_embedded: true, max_documents: 1)"#,
+                result: Ok(r#"[{ "a": 1 }]"#),
+            },
         ]
     }
 
@@ -225,6 +308,19 @@ impl Function for ParseJson {
         let value = arguments.required("value");
         let max_depth = arguments.optional("max_depth");
         let lossy = arguments.optional("lossy");
+        let extract_embedded = arguments.optional("extract_embedded");
+        let max_documents = arguments.optional("max_documents");
+
+        if extract_embedded.is_some() || max_documents.is_some() {
+            return Ok(ParseJsonEmbeddedFn {
+                value,
+                max_depth,
+                lossy,
+                extract_embedded,
+                max_documents,
+            }
+            .as_expr());
+        }
 
         match max_depth {
             Some(max_depth) => Ok(ParseJsonMaxDepthFn {
@@ -273,6 +369,54 @@ impl FunctionExpression for ParseJsonMaxDepthFn {
             .lossy
             .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
         parse_json_with_depth(value, max_depth, lossy)
+    }
+
+    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+        json_type_def()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ParseJsonEmbeddedFn {
+    value: Box<dyn Expression>,
+    max_depth: Option<Box<dyn Expression>>,
+    lossy: Option<Box<dyn Expression>>,
+    extract_embedded: Option<Box<dyn Expression>>,
+    max_documents: Option<Box<dyn Expression>>,
+}
+
+impl FunctionExpression for ParseJsonEmbeddedFn {
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        let value = self.value.resolve(ctx)?;
+        let lossy = self
+            .lossy
+            .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
+        let extract_embedded = self
+            .extract_embedded
+            .map_resolve_with_default(ctx, || DEFAULT_EXTRACT_EMBEDDED.clone())?
+            .try_boolean()?;
+        let max_depth = self
+            .max_depth
+            .as_ref()
+            .map(|e| e.resolve(ctx))
+            .transpose()?;
+
+        if !extract_embedded {
+            return match max_depth {
+                Some(max_depth) => parse_json_with_depth(value, max_depth, lossy),
+                None => parse_json(value, lossy),
+            };
+        }
+
+        let max_depth = max_depth.map(validate_depth).transpose()?;
+        let max_documents = self
+            .max_documents
+            .as_ref()
+            .map(|e| e.resolve(ctx))
+            .transpose()?
+            .map(validate_max_documents)
+            .transpose()?;
+        parse_embedded(value, lossy.try_boolean()?, max_depth, max_documents)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -382,6 +526,156 @@ mod tests {
         json_bom_lossy {
             args: func_args![ value: Bytes::from_static(&[0xef,0xbb,0xbf,0x7b,0x7d]), lossy: true],
             want: Ok(value!({})),
+            tdef: json_type_def(),
+        }
+
+        noisy_without_extract_embedded_errors {
+            args: func_args![ value: r#"INFO {"a": 1}"# ],
+            want: Err("unable to parse json: expected value at line 1 column 1"),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_false_unchanged {
+            args: func_args![ value: r#"{"a": 1}"#, extract_embedded: false ],
+            want: Ok(value!({ a: 1 })),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_objects {
+            args: func_args![ value: r#"2026-11-25 16:29:53    INFO    commandwriter/commandwriter.go:128    {"a": 1} {"b": {"c": [2]}}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }, { b: { c: [2] } }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_single {
+            args: func_args![ value: r#"INFO {"a": 1}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_adjacent {
+            args: func_args![ value: r#"{"a":1}{"b":2}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }, { b: 2 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_skips_invalid_fragments {
+            args: func_args![ value: r#"INFO {...} {"a": 1}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_invalid_fragment_between_blobs {
+            args: func_args![ value: r#"INFO {"a": 1} {...} {"b": 2}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }, { b: 2 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_arrays {
+            args: func_args![ value: r#"INFO controller.go:12 [1, 2] [{"a": true}, null]"#, extract_embedded: true ],
+            want: Ok(value!([[1, 2], [{ a: true }, null]])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_bracket_noise_is_extracted {
+            args: func_args![ value: r#"INFO [123] {"a": 1}"#, extract_embedded: true ],
+            want: Ok(value!([[123], { a: 1 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_bracket_noise_uses_max_documents {
+            args: func_args![ value: r#"INFO [123] {"a": 1}"#, extract_embedded: true, max_documents: 1 ],
+            want: Ok(value!([[123]])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_braces_in_strings {
+            args: func_args![ value: r#"INFO {"msg": "a } b ] c"}"#, extract_embedded: true ],
+            want: Ok(value!([{ msg: "a } b ] c" }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_nested_not_duplicated {
+            args: func_args![ value: r#"INFO {"a": {"b": 1}}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: { b: 1 } }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_unterminated_trailing {
+            args: func_args![ value: r#"INFO {"a": 1} {"b":"#, extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_truncated_skips_inner_objects {
+            args: func_args![ value: r#"INFO {"a": 1} {"b": {"c": 2}, "d": [{"e": 3}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_truncated_only_errors {
+            args: func_args![ value: r#"INFO {"b": {"c": 2}"#, extract_embedded: true ],
+            want: Err("unable to parse json: no json documents found"),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_truncated_array_skips_inner_objects {
+            args: func_args![ value: r#"INFO [1, {"a": 1}"#, extract_embedded: true ],
+            want: Err("unable to parse json: no json documents found"),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_unicode_noise {
+            args: func_args![ value: r#"é ✓ INFO {"a": "ü"}"#, extract_embedded: true ],
+            want: Ok(value!([{ a: "ü" }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_none_found {
+            args: func_args![ value: "INFO nothing here", extract_embedded: true ],
+            want: Err("unable to parse json: no json documents found"),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_only_invalid_fragments {
+            args: func_args![ value: "INFO {...}", extract_embedded: true ],
+            want: Err("unable to parse json: no json documents found"),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_max_documents {
+            args: func_args![ value: r#"INFO {"a": 1} {"b": 2} {"c": 3}"#, extract_embedded: true, max_documents: 2 ],
+            want: Ok(value!([{ a: 1 }, { b: 2 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_max_documents_exceeds_found {
+            args: func_args![ value: r#"INFO {"a": 1}"#, extract_embedded: true, max_documents: 5 ],
+            want: Ok(value!([{ a: 1 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_max_documents_zero {
+            args: func_args![ value: r#"INFO {"a": 1}"#, extract_embedded: true, max_documents: 0 ],
+            want: Err("max_documents value should be greater than 0, got 0"),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_max_depth {
+            args: func_args![ value: r#"INFO {"a": {"b": 1}} {"c": {"d": 2}}"#, extract_embedded: true, max_depth: 1 ],
+            want: Ok(value!([{ a: r#"{"b": 1}"# }, { c: r#"{"d": 2}"# }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_invalid_utf8_lossy {
+            args: func_args![ value: Bytes::from_static(b"\xf5 {\"a\": 1}"), extract_embedded: true ],
+            want: Ok(value!([{ a: 1 }])),
+            tdef: json_type_def(),
+        }
+
+        extract_embedded_invalid_utf8_strict {
+            args: func_args![ value: Bytes::from_static(b"\xf5 {\"a\": 1}"), extract_embedded: true, lossy: false ],
+            want: Err("unable to parse json: invalid utf-8 sequence of 1 bytes from index 0"),
             tdef: json_type_def(),
         }
     ];
