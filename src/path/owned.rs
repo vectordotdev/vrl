@@ -545,30 +545,6 @@ mod test {
         }
     }
 
-    #[test]
-    fn segment_display_quotes_invalid_fields() {
-        let test_cases = [
-            ("foo", "foo"),
-            ("_", "_"),
-            ("@timestamp", "@timestamp"),
-            ("123abc", "123abc"),
-            ("a1", "a1"),
-            ("123", r#""123""#),
-            ("", r#""""#),
-            ("foo-bar", r#""foo-bar""#),
-            ("foo.bar", r#""foo.bar""#),
-            ("é", r#""é""#),
-        ];
-
-        for (field, expected) in test_cases {
-            assert_eq!(
-                OwnedSegment::field(field).to_string(),
-                expected,
-                "{field:?}"
-            );
-        }
-    }
-
     fn reparse_thing<T: std::fmt::Debug + std::fmt::Display + Eq + FromStr>(thing: &T)
     where
         <T as FromStr>::Err: std::fmt::Debug,
@@ -587,6 +563,13 @@ mod test {
         #[test]
         fn reparses_valid_target_path(path: OwnedTargetPath) {
             reparse_thing(&path);
+        }
+
+        // Each accepted range's end bytes and the bytes just outside them.
+        #[test]
+        fn is_valid_field_agrees_with_regex(field in r"[/09:?@AZ\[^_`az{é\n]{0,5}") {
+            let regex = regex::Regex::new(r"^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap();
+            proptest::prop_assert_eq!(is_valid_field(&field), regex.is_match(&field));
         }
     }
 }
