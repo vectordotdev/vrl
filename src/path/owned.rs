@@ -1,6 +1,5 @@
 #[cfg(any(test, feature = "proptest"))]
 use proptest::prelude::*;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::str::FromStr;
@@ -8,7 +7,6 @@ use std::str::FromStr;
 use super::PathPrefix;
 use super::{BorrowedSegment, PathParseError, ValuePath, parse_target_path, parse_value_path};
 use crate::value::KeyString;
-use std::sync::LazyLock;
 
 /// A lookup path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -428,14 +426,19 @@ impl<'a> TryFrom<BorrowedSegment<'a>> for OwnedSegment {
     }
 }
 
-static VALID_FIELD: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
+/// Equivalent to `^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$`.
+fn is_valid_field(field: &str) -> bool {
+    field
+        .bytes()
+        .all(|b| matches!(b, b'A'..=b'Z' | b'a'..=b'z' | b'_' | b'0'..=b'9' | b'@'))
+        && !field.bytes().all(|b| b.is_ascii_digit())
+}
 
 fn format_field(f: &mut Formatter<'_>, field: &str) -> fmt::Result {
     // This can eventually just parse the field and see if it's valid, but the
     // parser is currently lenient in what it accepts so it doesn't catch all cases that
     // should be quoted
-    let needs_quotes = !VALID_FIELD.is_match(field);
+    let needs_quotes = !is_valid_field(field);
     if needs_quotes {
         write!(f, "\"{field}\"")
     } else {
@@ -560,6 +563,13 @@ mod test {
         #[test]
         fn reparses_valid_target_path(path: OwnedTargetPath) {
             reparse_thing(&path);
+        }
+
+        // Each accepted range's end bytes and the bytes just outside them.
+        #[test]
+        fn is_valid_field_agrees_with_regex(field in r"[/09:?@AZ\[^_`az{é\n]{0,5}") {
+            let regex = regex::Regex::new(r"^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap();
+            proptest::prop_assert_eq!(is_valid_field(&field), regex.is_match(&field));
         }
     }
 }
